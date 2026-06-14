@@ -1,269 +1,326 @@
-# Code Smell & Anti-Pattern Analysis
-## Legacy Payroll Management System — Phase 3
+# Code Smell Analysis Report
+## Legacy Payroll Management System
 
-**Document Type:** Model-Driven Re-Engineering Analysis  
-**Technique:** Static Analysis + Pattern Recognition + Refactoring Catalog (Fowler, 1999)
-
----
-
-## 1. Introduction
-
-Code smells are surface indicators of deeper problems in software design. They do not prevent a program from functioning but signal that the codebase will become increasingly difficult to maintain, extend, and secure over time. This document identifies and analyzes six major code smells found in the Legacy Payroll Management System and maps each smell to a concrete re-engineering technique drawn from established refactoring literature.
+**Student:** Rohail Rahmat | **Roll No:** 2023-KIU-BS4163  
+**University:** Karakorum International University, Gilgit  
+**Supervisor:** Asif Hussain  
+**Reference:** Fowler, M. (1999). *Refactoring: Improving the Design of Existing Code.* Addison-Wesley.
 
 ---
 
-## 2. Code Smell Catalog
+## Overview
 
-### Smell 1 — God File / God Class
+Code smells are surface indicators of deeper design problems in software. They do not always represent bugs, but they consistently signal areas where the design violates established principles and will create maintenance problems. This analysis systematically identifies, documents, and maps each code smell in the legacy payroll system to a proven refactoring remedy.
 
-**Location:** `payroll.php`, `index.php`  
-**Severity:** Critical
+---
 
-**Description:**  
-A God Class is a class or file that knows too much and does too much. In the legacy system, `payroll.php` spans over 2,000 lines of code and is responsible for rendering HTML output, performing salary calculations, querying the database, validating user input, and generating PDF reports — all within a single file.
+## Code Smell #1 — God File / God Class
 
-**Evidence:**
+**Severity:** 🔴 Critical  
+**Fowler Category:** Large Class  
+**Location:** `payroll.php` — 2,000+ lines
+
+### Description
+The entire system — employee management, payroll calculation, leave tracking, report generation, authentication, and routing — is contained within a single PHP file. This violates the Single Responsibility Principle: a class or module should have one reason to change.
+
+### Evidence
 ```php
-// payroll.php (excerpt showing mixed responsibilities)
-echo "<html><body>";               // Presentation
-$salary = $base + $allowances;    // Business logic
-$result = mysqli_query($conn, "SELECT * FROM employees"); // Data access
-file_put_contents("log.txt", $salary); // Logging
-echo "</body></html>";
+// payroll.php — contains ALL of the following:
+function getEmployee() { ... }          // Employee module
+function getAllEmployees() { ... }       // Employee module
+function addEmployee() { ... }          // Employee module
+function calculate_salary() { ... }     // Payroll module (400 lines alone)
+function applyLeave() { ... }           // Leave module
+function approveLeave() { ... }         // Leave module
+function generatePayrollReport() { ... } // Reports module
+function checkAuth() { ... }            // Auth module
+// ... and 40+ more functions
 ```
 
-**Impact:** Any modification to one responsibility risks breaking the others. Unit testing is impossible because all concerns are entangled.
+### Impact
+- Any change to payroll logic risks breaking employee management
+- New developers must read 2,000 lines to understand any single feature
+- Merge conflicts occur on every parallel development task
+- Impossible to deploy one module fix without deploying the entire system
 
-**Re-Engineering Technique — Extract Class:**  
-Decompose the God File into focused, single-responsibility classes:
-- `EmployeeService.php` — employee data operations
-- `PayrollCalculator.php` — salary computation logic
-- `PayrollController.php` — request handling and response
-- `PayrollRepository.php` — database queries only
+### Refactoring Technique: Extract Class
+```
+Before: payroll.php (2,000 lines, all responsibilities)
+
+After:
+├── EmployeeService.ts      (Employee CRUD)
+├── PayrollService.ts       (Salary calculation)
+├── LeaveService.ts         (Leave management)
+├── ReportService.ts        (Report generation)
+└── AuthMiddleware.ts       (Authentication)
+```
 
 ---
 
-### Smell 2 — Duplicate Code
+## Code Smell #2 — SQL Injection Vulnerability (Raw SQL)
 
-**Location:** All 15+ PHP page files  
-**Severity:** High
+**Severity:** 🔴 Critical  
+**Category:** Security Anti-Pattern (OWASP Top 10 — A03:2021)  
+**Location:** All database-access functions
 
-**Description:**  
-The same session validation block appears copy-pasted at the top of every PHP file in the system. When the authentication logic needs to change, a developer must manually update 15+ files, and missing even one creates a security gap.
+### Description
+User input is concatenated directly into SQL query strings without any sanitization or parameterization. This is the most dangerous vulnerability in web applications and can result in complete data loss, unauthorized access to all payroll records, and full database destruction.
 
-**Evidence:**
+### Evidence — The Vulnerable Code
 ```php
-// Repeated verbatim in employee.php, payroll.php, leave.php, reports.php ...
-session_start();
-if (!isset($_SESSION['user_id'])) {
-    header("Location: login.php");
-    die();
+// VULNERABLE — Any attacker can exploit this
+function getEmployee() {
+    global $conn;
+    $id = $_GET['employee_id'];  // Unvalidated user input
+    $query = "SELECT * FROM employees WHERE id = " . $id;
+    // If attacker enters: 1; DROP TABLE employees; --
+    // The executed query becomes:
+    // SELECT * FROM employees WHERE id = 1; DROP TABLE employees; --
+    // Result: entire employees table destroyed
+    $result = mysqli_query($conn, $query);
+    return mysqli_fetch_assoc($result);
+}
+
+// Another instance — string injection
+function getAllEmployees() {
+    $dept = $_GET['department'];
+    $query = "SELECT * FROM employees WHERE department = '" . $dept . "'";
+    // Attacker enters: ' OR '1'='1
+    // Query returns ALL employees regardless of department
 }
 ```
 
-**Impact:** Security vulnerabilities arise when copies fall out of sync. Maintenance cost multiplies with every duplicated block.
+### Attack Scenarios
+| Attack | Payload | Result |
+|---|---|---|
+| Data theft | `1 UNION SELECT username,password FROM users--` | All credentials exposed |
+| Data destruction | `1; DROP TABLE employees;--` | All employee data lost |
+| Authentication bypass | `' OR '1'='1'--` | Login without password |
+| Data modification | `1; UPDATE employees SET salary=1 WHERE 1=1--` | All salaries set to 1 |
 
-**Re-Engineering Technique — Extract Method + Middleware Pattern:**  
-Create a single `AuthMiddleware.php`:
+### Refactoring Technique: Repository Pattern + Parameterized Queries
+```typescript
+// SECURE — After applying Repository Pattern
+async findEmployeeById(id: number): Promise<Employee> {
+    // TypeORM generates parameterized queries automatically
+    // User input NEVER touches the query string
+    return this.employeeRepository.findOneOrFail({ where: { id } });
+}
+
+// Or with explicit parameterized query:
+const employee = await this.repository.query(
+    'SELECT * FROM employees WHERE id = $1',
+    [id]  // id is passed as parameter, never concatenated
+);
+```
+
+---
+
+## Code Smell #3 — Duplicate Code
+
+**Severity:** 🟠 High  
+**Fowler Category:** Duplicated Code  
+**Location:** 15+ files — authentication check repeated throughout
+
+### Description
+The authentication check function is copy-pasted across every module function. The same SQL patterns for retrieving employee data are repeated with minor variations. Tax and PF rates appear as hardcoded literals in multiple locations.
+
+### Evidence
 ```php
-class AuthMiddleware {
-    public static function check() {
-        session_start();
-        if (!isset($_SESSION['user_id'])) {
-            header("Location: login.php");
-            exit();
-        }
+// This EXACT block appears in 15+ functions:
+function checkAuth() {
+    if (!isset($_SESSION['user_id'])) {
+        header("Location: login.php");
+        exit();
     }
 }
-// All pages call: AuthMiddleware::check();
+// Called or re-implemented in: getEmployee(), addEmployee(),
+// calculate_salary(), applyLeave(), generatePayrollReport(), etc.
+
+// Tax rate: appears in 3 separate locations
+// payroll.php line 89:    $tax_rate = 0.10;
+// tax_report.php line 34: $tax_rate = 0.10;
+// payslip.php line 67:    $tax_rate = 0.10;
+```
+
+### Impact
+- When tax rate changes from 10% to 12%, developer must find and update 3 files
+- If they miss one file, salary calculation and tax report show different numbers
+- Payroll discrepancies → employee complaints → management trust issues
+
+### Refactoring Technique: Extract Method + Middleware Pattern
+```typescript
+// ONE authentication middleware used everywhere
+@Injectable()
+export class JwtAuthGuard extends AuthGuard('jwt') {
+    // Defined once, applied via decorator on any route
+}
+
+// Usage — no copy-paste, just one decorator:
+@UseGuards(JwtAuthGuard)
+async getEmployee(id: number) { ... }
+
+// Configuration centralized in one place:
+// config/payroll.config.ts
+export const payrollConfig = {
+    taxRate: parseFloat(process.env.TAX_RATE || '0.10'),
+    pfRate: parseFloat(process.env.PF_RATE || '0.12'),
+    overtimeMultiplier: parseFloat(process.env.OVERTIME_RATE || '1.5'),
+};
 ```
 
 ---
 
-### Smell 3 — Shotgun Surgery
+## Code Smell #4 — Shotgun Surgery
 
-**Location:** Tax rate configuration across codebase  
-**Severity:** High
+**Severity:** 🟠 High  
+**Fowler Category:** Shotgun Surgery  
+**Location:** Tax rates, PF rates, overtime rates across multiple files
 
-**Description:**  
-When the government updates tax rates — a routine annual event — a developer must locate and update hardcoded tax values scattered across `payroll.php`, `calculate.php`, `reports.php`, and `generate_report.php`. A single logical change triggers modifications in multiple unrelated locations.
+### Description
+Shotgun Surgery describes a situation where a single logical change requires modifications to many different files. In this system, changing the income tax rate requires hunting through at least 3 separate files. Missing any one of them creates a data inconsistency.
 
-**Evidence:**
-```php
-// In payroll.php
-$tax = $salary * 0.15;
-
-// In calculate.php (same hardcoded value)
-$income_tax = $gross * 0.15;
-
-// In reports.php (same again)
-$tax_deduction = $total * 0.15;
+### Evidence — Files Requiring Change for a Single Tax Rate Update
+```
+payroll.php        line 89:   $tax_rate = 0.10;   ← Must change
+tax_report.php     line 34:   $tax_rate = 0.10;   ← Must change
+payslip.php        line 67:   $tax_rate = 0.10;   ← Must change
+annual_summary.php line 112:  $tax_rate = 0.10;   ← Easy to miss!
 ```
 
-**Impact:** High risk of inconsistency. One missed update produces incorrect payroll calculations with financial and legal consequences.
+### Impact
+- Developer updates 3 files, misses `annual_summary.php`
+- Monthly payslip shows PKR 5,000 tax deducted
+- Annual summary shows PKR 4,800 tax paid (wrong rate × 12)
+- Employee files incorrect tax returns — legal consequences
 
-**Re-Engineering Technique — Move Method + Single Source of Truth:**  
-Centralize all business rules in a dedicated configuration service:
-```php
-class TaxConfigService {
-    public function getCurrentTaxRate(): float {
-        return Config::get('tax.income_rate'); // From .env or DB
+### Refactoring Technique: Move Method + Configuration Service
+```typescript
+// Single source of truth — change here, applies everywhere
+@Injectable()
+export class ConfigService {
+    get taxRate(): number {
+        return this.config.get<number>('TAX_RATE');
+    }
+    get pfRate(): number {
+        return this.config.get<number>('PF_RATE');
     }
 }
+// Every service injects ConfigService — one place to update
 ```
 
 ---
 
-### Smell 4 — Hardcoded Configuration
+## Code Smell #5 — Hardcoded Configuration
 
-**Location:** `config.php`, inline throughout business logic  
-**Severity:** High
+**Severity:** 🟠 High  
+**Category:** Magic Numbers / Hardcoded Literals  
+**Location:** `payroll.php` lines 89, 103, 118 and multiple other files
 
-**Description:**  
-Database credentials, server hostnames, tax rates, and allowance multipliers are hardcoded directly in source files. This makes deploying to different environments (development, staging, production) dangerous and error-prone.
+### Description
+Sensitive credentials and business-rule constants are embedded directly in source code. This creates both security vulnerabilities (credentials in version control) and maintenance problems (no way to change configuration without code deployment).
 
-**Evidence:**
+### Evidence
 ```php
-// config.php
-$host = "localhost";
-$user = "root";
-$pass = "admin123";       // Plaintext password in source control
-$db   = "payroll_db";
+// CRITICAL: Production database password in source code
+$db_host = "localhost";
+$db_user = "root";
+$db_pass = "admin123";     // Anyone with repo access has this password
 
-// payroll.php
-$housing_allowance = $salary * 0.40;  // Magic number, no explanation
-$medical_allowance = $salary * 0.10;  // Magic number
+// Business rules as magic numbers
+$tax_rate = 0.10;          // Why 0.10? No comment, no named constant
+$pf_rate = 0.12;           // What is this? Provident Fund? Rate of what?
+$overtime_rate = 1.5;      // Multiplier? Per what period?
+$house_allowance = 0.20;   // 20% of what?
 ```
 
-**Impact:** Credentials exposed in version control history. Cannot deploy to cloud or CI/CD without manual file editing.
+### Impact
+- Database password exposed to every developer, contractor, and anyone with repository access
+- Pakistani income tax rates change with every federal budget — each change requires code deployment
+- Without code comments, no developer knows *why* these numbers exist
 
-**Re-Engineering Technique — Externalize Configuration:**  
-Move all environment-specific values to `.env` files:
+### Refactoring Technique: Externalize Configuration
+```bash
+# .env file (NEVER committed to git — in .gitignore)
+DATABASE_URL=postgresql://payroll_user:SecurePass123@db:5432/payroll
+JWT_SECRET=super-secret-jwt-key-256-bits
+TAX_RATE=0.10
+PF_RATE=0.12
+OVERTIME_RATE=1.5
+HOUSE_ALLOWANCE_RATE=0.20
 ```
-DB_HOST=localhost
-DB_USER=payroll_user
-DB_PASS=secure_password
-TAX_RATE=0.15
-HOUSING_ALLOWANCE_RATE=0.40
+```typescript
+// Usage — named, readable, configurable without code changes
+const taxRate = this.configService.get<number>('TAX_RATE');
 ```
-Access via a typed configuration class that validates values at startup.
 
 ---
 
-### Smell 5 — Raw SQL + Data Clumps
+## Code Smell #6 — Long Method
 
-**Location:** All module files  
-**Severity:** Critical
+**Severity:** 🟠 High  
+**Fowler Category:** Long Method  
+**Location:** `calculate_salary()` function — 400+ lines
 
-**Description:**  
-SQL queries are constructed through direct string concatenation with user-supplied input throughout the codebase. This is the textbook definition of an SQL injection vulnerability — one of the most critical security weaknesses in web applications (OWASP Top 10).
+### Description
+The `calculate_salary()` function performs at least 10 distinct operations: fetching employee data, calculating attendance, computing overtime, applying tax, calculating provident fund, checking loan deductions, summing allowances, computing net salary, saving to database, and generating HTML output. No function should do more than one thing.
 
-**Evidence:**
+### Evidence
 ```php
-// employee.php — SQL Injection vulnerability
-$id = $_GET['employee_id'];  // Unvalidated user input
-$query = "SELECT * FROM employees WHERE id = " . $id;
-$result = mysqli_query($conn, $query);
-// Attacker can input: 1 OR 1=1 -- (returns all records)
-// Or: 1; DROP TABLE employees; -- (destroys data)
-```
-
-**Impact:** Complete database compromise. An attacker can read, modify, or delete all payroll data with a single crafted URL.
-
-**Re-Engineering Technique — Repository Pattern + Parameterized Queries:**  
-```php
-class EmployeeRepository {
-    public function findById(int $id): ?Employee {
-        $stmt = $this->pdo->prepare(
-            "SELECT * FROM employees WHERE id = :id"
-        );
-        $stmt->execute(['id' => $id]);
-        return $stmt->fetchObject(Employee::class);
-    }
+function calculate_salary($employee_id, $month, $year) {
+    // Step 1: Database query for employee (lines 1-10)
+    // Step 2: Database query for attendance (lines 11-25)
+    // Step 3: Tax calculation (lines 26-35)
+    // Step 4: Overtime calculation + DB query (lines 36-60)
+    // Step 5: Provident fund (lines 61-70)
+    // Step 6: Allowances (lines 71-90)
+    // Step 7: Loan deductions + DB query (lines 91-110)
+    // Step 8: Net salary calculation (lines 111-125)
+    // Step 9: Save to database (lines 126-150)
+    // Step 10: Generate and return HTML (lines 151-400)
+    // ... 400 lines total
 }
 ```
 
----
+### Impact
+- Testing any one step requires executing all 400 lines and all 5 database queries
+- A bug in HTML generation on line 350 can only be diagnosed by reading 400 lines
+- Cannot reuse salary calculation without also getting HTML output
 
-### Smell 6 — Long Method
-
-**Location:** `calculate.php` — `calculate_salary()` function  
-**Severity:** High
-
-**Description:**  
-The `calculate_salary()` function spans over 400 lines and handles base salary calculation, tax computation, all allowance types, deductions, overtime, bonuses, and final net pay in a single unbroken block of code with no sub-function decomposition.
-
-**Evidence:**
-```php
-function calculate_salary($emp_id) {
-    // 400+ lines handling:
-    // - Base salary lookup
-    // - Housing allowance
-    // - Medical allowance  
-    // - Transport allowance
-    // - Income tax (multiple brackets)
-    // - EOBI deductions
-    // - Loan deductions
-    // - Overtime calculation
-    // - Bonus computation
-    // - Net pay calculation
-    // All in one giant function with no sub-functions
+### Refactoring Technique: Decompose Method
+```typescript
+// 400-line method becomes an orchestrator calling small methods:
+async calculateSalary(employeeId, month, year) {
+    const employee    = await this.findEmployee(employeeId);        // 5 lines
+    const gross       = await this.calculateGross(employee, month); // 10 lines
+    const deductions  = await this.calculateDeductions(employee);   // 10 lines
+    const netSalary   = gross - deductions.total;                   // 1 line
+    return this.saveRecord({ employee, gross, deductions, net });   // 5 lines
 }
-```
-
-**Impact:** Impossible to test individual calculation steps. A bug in tax computation requires reading through 400 lines to locate.
-
-**Re-Engineering Technique — Decompose Method:**  
-```php
-class PayrollCalculator {
-    public function calculate(Employee $emp): PayrollResult {
-        $base       = $this->calculateBaseSalary($emp);
-        $allowances = $this->calculateAllowances($emp, $base);
-        $tax        = $this->calculateTax($base + $allowances);
-        $deductions = $this->calculateDeductions($emp);
-        return new PayrollResult($base, $allowances, $tax, $deductions);
-    }
-    private function calculateBaseSalary(Employee $emp): float { ... }
-    private function calculateAllowances(Employee $emp, float $base): float { ... }
-    private function calculateTax(float $gross): float { ... }
-    private function calculateDeductions(Employee $emp): float { ... }
-}
+// Each sub-method is independently testable — total: 5 small functions
 ```
 
 ---
 
-## 3. Anti-Pattern Summary Table
+## Summary Table
 
-| # | Code Smell | Location | Severity | Re-Engineering Technique |
+| # | Code Smell | Severity | Files Affected | Refactoring Applied |
 |---|---|---|---|---|
-| 1 | God File / God Class | `payroll.php` | Critical | Extract Class |
-| 2 | Duplicate Code | All 15+ files | High | Extract Method + Middleware |
-| 3 | Shotgun Surgery | Tax rate logic | High | Move Method + Config Service |
-| 4 | Hardcoded Configuration | `config.php` + inline | High | Externalize Configuration |
-| 5 | Raw SQL + Data Clumps | All module files | Critical | Repository Pattern + ORM |
-| 6 | Long Method | `calculate_salary()` | High | Decompose Method |
+| 1 | God File / God Class | 🔴 Critical | payroll.php | Extract Class → 5 services |
+| 2 | Raw SQL / SQL Injection | 🔴 Critical | All DB functions | Repository Pattern + ORM |
+| 3 | Duplicate Code | 🟠 High | 15+ functions | Extract Method + Middleware |
+| 4 | Shotgun Surgery | 🟠 High | 4 files | Move Method + Config Service |
+| 5 | Hardcoded Configuration | 🟠 High | 3+ files | Externalize Configuration |
+| 6 | Long Method | 🟠 High | payroll.php | Decompose Method |
 
 ---
 
-## 4. Refactoring Priority
+## References
 
-Based on severity and business impact, the recommended refactoring order is:
-
-1. **Fix SQL Injection (Smell 5)** — Immediate security risk
-2. **Extract God Class (Smell 1)** — Foundation for all other refactoring
-3. **Eliminate Duplicate Auth (Smell 2)** — Security and consistency
-4. **Externalize Configuration (Smell 4)** — Enables proper deployment
-5. **Decompose Long Methods (Smell 6)** — Enables unit testing
-6. **Fix Shotgun Surgery (Smell 3)** — Maintainability
+- Fowler, M. (1999). *Refactoring: Improving the Design of Existing Code.* Addison-Wesley.
+- OWASP Foundation. (2021). *OWASP Top 10.* Retrieved from https://owasp.org/Top10/
+- Martin, R.C. (2008). *Clean Code: A Handbook of Agile Software Craftsmanship.* Prentice Hall.
 
 ---
 
-## 5. Conclusion
-
-The six code smells identified in this analysis collectively reveal a system that has grown organically without architectural discipline. Each smell has a well-established re-engineering solution documented in Fowler's *Refactoring: Improving the Design of Existing Code* (1999). The application of these techniques in the proposed order will progressively transform the legacy monolith into a maintainable, testable, and secure system — setting the stage for the full modernization strategy presented in Phase 4.
-
----
-
-*References: Fowler, M. (1999). Refactoring: Improving the Design of Existing Code. Addison-Wesley.*  
-*OWASP Top 10 Web Application Security Risks (2021).*
-
+*Rohail Rahmat | 2023-KIU-BS4163 | Karakorum International University, Gilgit*

@@ -1,161 +1,242 @@
 # Architecture Recovery Report
-## Legacy Payroll Management System
+## As-Is Architecture Analysis — Legacy Payroll Management System
 
-**Project:** Software Re-Engineering — Semester Project  
-**Document:** Architecture Recovery (As-Is Analysis)  
-**Methodology:** Source Code Analysis, Reverse Engineering, Component Identification
+**Student:** Rohail Rahmat | **Roll No:** 2023-KIU-BS4163  
+**University:** Karakorum International University, Gilgit  
+**Supervisor:** Asif Hussain  
+**Document:** Architecture Recovery Report v1.0
 
 ---
 
 ## 1. Introduction
 
-Architecture recovery is the process of extracting architectural knowledge from an existing system when formal documentation is absent or outdated. This report presents the recovered architecture of a Legacy PHP/MySQL Payroll Management System through systematic reverse engineering and static code analysis.
+Architecture recovery is the process of extracting architectural information from existing source code, documentation, and system behavior when no formal architecture documentation exists. In legacy systems, architecture is rarely documented — it must be *discovered* through systematic reverse engineering.
 
-The recovered architecture serves as the foundation for identifying design flaws, anti-patterns, and modernization opportunities discussed in subsequent phases of this project.
-
----
-
-## 2. System Overview
-
-| Attribute | Details |
-|---|---|
-| System Type | Payroll Management System |
-| Primary Language | PHP 5.x (Procedural) |
-| Database | MySQL 5.x |
-| Frontend | HTML, CSS, jQuery |
-| Server | Apache HTTP Server |
-| Architecture Style | Monolithic — Single deployable unit |
-| Estimated Codebase | ~8,000 Lines of Code |
-| Development Era | Early 2000s patterns |
+This report presents the complete architecture recovery of a legacy PHP/MySQL Payroll Management System. The system has been in production for over 8 years, has no architecture documentation, and has been maintained by multiple developers without any consistent design discipline.
 
 ---
 
-## 3. Architecture Recovery Methodology
+## 2. Recovery Methodology
 
-The following techniques were applied to recover the system architecture:
+The architecture was recovered using three complementary techniques:
 
-### 3.1 Static Code Analysis
-Examination of PHP source files to identify module boundaries, function call graphs, and data flow between components without executing the program.
+### 2.1 Static Code Analysis
+- Manual inspection of all PHP source files
+- Identification of `include` and `require` dependencies
+- Function call mapping across files
+- Database query pattern analysis
 
-### 3.2 Database Schema Reverse Engineering
-Analysis of SQL dump files and table relationships to reconstruct the data model and identify how data is shared across modules.
+### 2.2 Database Schema Reverse Engineering
+- MySQL schema extraction using `SHOW CREATE TABLE`
+- Foreign key relationship mapping
+- Identification of implicit relationships (no foreign keys enforced)
 
-### 3.3 Component Identification
-Grouping related PHP files by functionality to identify logical modules even though no physical module boundaries exist in the codebase.
-
-### 3.4 Dependency Mapping
-Tracing `include`, `require`, and direct SQL calls across files to map inter-module dependencies and coupling relationships.
-
----
-
-## 4. Recovered Architecture — As-Is
-
-### 4.1 Architectural Style
-The system follows a **Monolithic Architecture** — all functionality is packaged and deployed as a single unit. There is no meaningful separation between presentation, business logic, and data access layers.
-
-### 4.2 Identified Layers
-
-#### Presentation Layer
-- HTML mixed directly inside PHP files
-- jQuery used for basic DOM manipulation
-- No templating engine or view separation
-- Business logic embedded inside HTML-generating PHP scripts
-
-#### Application Layer (Monolith Core)
-The following logical modules were identified within the monolith:
-
-| Module | Responsibility | Files Identified |
-|---|---|---|
-| Employee Management | CRUD operations for employee records | `employee.php`, `add_emp.php`, `edit_emp.php` |
-| Payroll Calculation | Salary computation, deductions, net pay | `payroll.php`, `calculate.php`, `salary.php` |
-| Leave Management | Leave requests, approvals, balance tracking | `leave.php`, `leave_request.php` |
-| Report Generation | Monthly reports, payslips, summaries | `reports.php`, `generate_report.php` |
-| Authentication | Login, session management | `login.php`, `session_check.php` |
-
-#### Cross-Cutting Concerns (Improperly Mixed)
-| Concern | How It Is Handled |
-|---|---|
-| Authentication | Inline session checks copy-pasted across every file |
-| Logging | Direct `file_put_contents()` calls scattered across modules |
-| Error Handling | Mix of `die()`, `echo`, and silent failures |
-| Configuration | Database credentials hardcoded in `config.php` |
-
-#### Data Layer
-- Single MySQL 5.x database instance
-- No ORM or data abstraction layer
-- Raw SQL queries written directly inside PHP business logic files
-- No stored procedures or query parameterization (SQL injection risk)
-- Flat files used for log storage and report exports
+### 2.3 Component Identification
+- Grouping of related functions into logical modules
+- Identification of data flows between modules
+- Detection of shared state and global variables
 
 ---
 
-## 5. Architectural Violations Identified
+## 3. Recovered System Components
 
-The following critical architectural violations were recovered:
+### 3.1 Logical Modules Identified
 
-### Violation 1 — No Layered Separation
-Business logic, presentation, and data access are merged inside single PHP files. A single file like `payroll.php` contains HTML output, salary calculation logic, and direct SQL queries simultaneously.
+| Module | Primary File | Lines of Code | Responsibility |
+|---|---|---|---|
+| Employee Management | `payroll.php` | ~600 LOC | CRUD operations on employee records |
+| Payroll Calculation | `payroll.php` | ~800 LOC | Salary computation, payslip generation |
+| Leave Management | `payroll.php` | ~400 LOC | Leave applications, approvals |
+| Reports | `payroll.php` | ~500 LOC | Payroll reports, summaries |
+| Authentication | `payroll.php` | ~200 LOC | Session management, login |
+| Database Layer | `payroll.php` | ~500 LOC | Raw SQL queries, connection |
 
-### Violation 2 — God Files
-Files such as `index.php` and `payroll.php` contain thousands of lines of code handling multiple unrelated responsibilities, violating the Single Responsibility Principle.
+**Critical Finding:** All 6 modules exist in a **single file**. There are no module boundaries, no interfaces, and no separation of concerns.
 
-### Violation 3 — Hardcoded Configuration
-Database host, username, and password are hardcoded directly in `config.php` with no environment variable support, making deployment across environments dangerous.
-
-### Violation 4 — Duplicated Authentication Logic
-Session validation code is copy-pasted across 15+ PHP files rather than implemented as a central middleware or filter.
-
-### Violation 5 — Unparameterized SQL Queries
-SQL queries are constructed using direct string concatenation with user input, creating critical SQL injection vulnerabilities throughout the system.
-
-### Violation 6 — No API Layer
-There is no REST or service layer. All data access happens through direct page-to-database calls, making integration with any external system impossible without rewriting core logic.
-
----
-
-## 6. Component Dependency Analysis
+### 3.2 Recovered Dependency Map
 
 ```
-login.php
-  └── config.php (DB credentials)
-  └── session_check.php
-
-payroll.php
-  └── config.php
-  └── employee.php (direct include)
-  └── calculate.php
-  └── reports.php (direct include)
-  └── [Raw MySQL queries embedded]
-
-employee.php
-  └── config.php
-  └── [Raw MySQL queries embedded]
-  └── leave.php (direct include)
+┌─────────────────────────────────────────────────────┐
+│               payroll.php (God File)                │
+│                                                     │
+│  ┌──────────┐    ┌──────────┐    ┌──────────────┐  │
+│  │ Employee │◄──►│ Payroll  │◄──►│    Leave     │  │
+│  │  Module  │    │  Module  │    │   Module     │  │
+│  └────┬─────┘    └────┬─────┘    └──────┬───────┘  │
+│       │               │                  │          │
+│       └───────────────┼──────────────────┘          │
+│                       ▼                             │
+│              ┌──────────────┐                       │
+│              │   Reports    │                       │
+│              │   Module     │                       │
+│              └──────┬───────┘                       │
+│                     │                               │
+│  ┌──────────────────▼──────────────────────────┐   │
+│  │            Global $conn Variable             │   │
+│  │         (Shared MySQL Connection)            │   │
+│  └──────────────────┬──────────────────────────┘   │
+└─────────────────────┼───────────────────────────────┘
+                      │
+                      ▼
+              ┌───────────────┐
+              │ MySQL 5.x DB  │
+              │ (Single DB,   │
+              │  All Tables)  │
+              └───────────────┘
 ```
-
-Every module depends on every other module through direct file includes, creating a **circular dependency web** that makes independent testing, modification, or replacement of any single module impossible.
 
 ---
 
-## 7. Summary of Findings
+## 4. Architectural Violations Identified
 
-| Finding | Severity | Impact |
+### Violation 1: Absence of Layered Architecture
+**Description:** The system has no separation between presentation, business logic, and data access layers. PHP logic, HTML output, and SQL queries appear in the same functions.
+
+**Evidence:**
+```php
+function calculate_salary($id, $month, $year) {
+    // Data access (SQL) mixed with...
+    $result = mysqli_query($conn, "SELECT * FROM employees WHERE id=" . $id);
+    // ...business logic mixed with...
+    $net_salary = $gross - $tax - $pf;
+    // ...presentation (HTML generation)
+    echo "<h1>Payslip: PKR " . $net_salary . "</h1>";
+}
+```
+
+**Impact:** Any change to payslip presentation requires touching salary calculation logic — high risk of introducing calculation bugs.
+
+---
+
+### Violation 2: God File Anti-Pattern
+**Description:** A single file (`payroll.php`, 2,000+ lines) contains all system functionality. This violates the Single Responsibility Principle fundamentally.
+
+**Evidence:** The file contains employee CRUD, payroll calculation, leave management, report generation, authentication, and routing — all in one file.
+
+**Impact:** Every developer working on any feature must understand the entire 2,000-line file. Merge conflicts are constant. Testing any one feature requires the entire file to load.
+
+---
+
+### Violation 3: No API Layer
+**Description:** The system has no API. All interactions are page-based PHP with direct database access. There is no way to integrate with other systems without modifying source code.
+
+**Evidence:** No REST endpoints, no response format standardization, no authentication tokens. Mobile integration is impossible.
+
+**Impact:** The HR module cannot share data with Finance. A mobile app cannot be built. Any integration requires direct database access — a serious security risk.
+
+---
+
+### Violation 4: Shared Mutable Global State
+**Description:** The database connection (`$conn`) is a global variable accessed by all functions throughout the file. Any function can modify or close this connection.
+
+**Evidence:**
+```php
+$conn = mysqli_connect(...);  // Global at top of file
+
+function getEmployee() {
+    global $conn;  // Every function accesses global state
+    ...
+}
+```
+
+**Impact:** Impossible to test functions in isolation. A bug in one function corrupting `$conn` breaks the entire system unpredictably.
+
+---
+
+### Violation 5: Hardcoded Configuration
+**Description:** Database credentials, tax rates, allowance rates, and overtime multipliers are hardcoded directly in source code, appearing in multiple locations.
+
+**Evidence:**
+```php
+$db_pass = "admin123";  // Production password in code
+$tax_rate = 0.10;       // Appears in payroll.php, tax_report.php, payslip.php
+$pf_rate = 0.12;        // Appears in payroll.php AND payslip.php
+```
+
+**Impact:** Changing tax rate requires editing multiple files — high risk of inconsistency. Database password is visible to every developer with repository access.
+
+---
+
+### Violation 6: No Authentication Architecture
+**Description:** Authentication is a simple session check copy-pasted into every function with no centralized middleware or security layer.
+
+**Evidence:**
+```php
+function checkAuth() {
+    if (!isset($_SESSION['user_id'])) {
+        header("Location: login.php");
+        exit();
+    }
+}
+// This same function is copy-pasted or called 15+ times
+```
+
+**Impact:** No role-based access control. Any authenticated user can access any function. Privilege escalation attacks are trivial.
+
+---
+
+## 5. Data Flow Analysis
+
+### Current Data Flow (As-Is)
+```
+Browser Request
+      │
+      ▼
+payroll.php ($_GET['action'])
+      │
+      ├─► if action == 'list'     → getAllEmployees() → Raw SQL → MySQL
+      ├─► if action == 'payroll'  → calculate_salary() → Raw SQL → MySQL
+      ├─► if action == 'leave'    → applyLeave() → Raw SQL → MySQL
+      └─► if action == 'report'   → generateReport() → Raw SQL → MySQL
+                                                            │
+                                                            ▼
+                                                    HTML echoed directly
+                                                    to browser response
+```
+
+**Problem:** No data validation at any layer. User input flows directly into SQL queries. No output encoding — XSS vulnerabilities also present.
+
+---
+
+## 6. Database Schema Analysis
+
+### Recovered Table Structure
+
+| Table | Columns | Relationships |
 |---|---|---|
-| No architectural layering | Critical | Cannot scale or maintain |
-| SQL injection vulnerabilities | Critical | Data breach risk |
-| Duplicated authentication | High | Security gaps |
-| Hardcoded credentials | High | Deployment risk |
-| God file anti-pattern | High | Unmaintainable codebase |
-| No API layer | High | Zero integration capability |
+| `employees` | id, name, email, salary, department, status | None enforced |
+| `payroll_records` | id, employee_id, month, year, net_salary | Implicit FK to employees |
+| `leaves` | id, employee_id, from_date, to_date, status | Implicit FK to employees |
+| `attendance` | id, employee_id, date, status | Implicit FK to employees |
+| `overtime` | id, employee_id, date, hours | Implicit FK to employees |
+| `loans` | id, employee_id, amount, monthly_deduction, status | Implicit FK to employees |
+
+**Critical Finding:** No foreign key constraints exist. The database accepts orphaned records (payroll for deleted employees). Data integrity is enforced only in PHP code — which itself is unreliable.
+
+---
+
+## 7. Summary of Architectural State
+
+| Metric | Assessment |
+|---|---|
+| Architectural Style | Monolithic — Procedural |
+| Layer Separation | None |
+| Module Boundaries | None |
+| Interface Definitions | None |
+| Security Architecture | None |
+| API Design | None |
+| Test Architecture | None |
+| Configuration Management | None |
+| Overall Health Score | 2/10 — Critical |
 
 ---
 
 ## 8. Conclusion
 
-The architecture recovery process reveals a system built without architectural planning, following procedural programming patterns typical of early 2000s PHP development. The system suffers from critical coupling issues, security vulnerabilities, and a complete absence of separation of concerns.
+The recovered architecture reveals a system in critical condition. While it fulfills its functional purpose — processing payroll — it does so at significant risk. The absence of any architectural discipline means that every maintenance activity carries risk of introducing new bugs, every feature addition increases complexity exponentially, and every security vulnerability remains undetected and unfixed.
 
-These findings directly motivate the re-engineering and modernization strategy presented in the subsequent phases of this project.
+The recovered architecture serves as the definitive baseline for the re-engineering work documented in subsequent project artifacts.
 
 ---
 
-*End of Architecture Recovery Report*
+*Rohail Rahmat | 2023-KIU-BS4163 | Karakorum International University, Gilgit*
