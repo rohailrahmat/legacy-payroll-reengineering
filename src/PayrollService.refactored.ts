@@ -156,7 +156,7 @@ export class PayrollService {
   }
 
   private async savePayrollRecord(data: any): Promise<PayrollRecord> {
-    const record = this.payrollRepository.create(data);
+    const record = this.payrollRepository.create(data as Partial<PayrollRecord>);
     return this.payrollRepository.save(record);
   }
 }
