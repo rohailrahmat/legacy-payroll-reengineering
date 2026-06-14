@@ -213,6 +213,9 @@ payroll.php ($_GET['action'])
 
 **Critical Finding:** No foreign key constraints exist. The database accepts orphaned records (payroll for deleted employees). Data integrity is enforced only in PHP code — which itself is unreliable.
 
+**Critical Query Logic Bug Discovered:** During database query recovery, a major logic flaw was identified in the overtime query used inside the payroll calculation module. The query calculates monthly hours by filtering only on the month: `AND MONTH(date) = $month`. Because it completely lacks a year filter, it sums overtime hours from the same month across *all previous years* present in the database, resulting in highly inflated and incorrect salary calculations as the database grows over time.
+
+
 ---
 
 ## 7. Summary of Architectural State

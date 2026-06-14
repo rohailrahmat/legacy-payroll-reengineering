@@ -69,8 +69,11 @@ export class PayrollService {
       employee,
       month,
       year,
+      basicSalary: employee.baseSalary,
       grossSalary,
-      deductions,
+      taxDeduction: deductions.incomeTax,
+      pfDeduction: deductions.providentFund,
+      loanDeduction: deductions.loanDeduction,
       netSalary,
     });
   }
@@ -140,7 +143,7 @@ export class PayrollService {
        WHERE employee_id = $1 AND EXTRACT(MONTH FROM date) = $2 AND EXTRACT(YEAR FROM date) = $3`,
       [employeeId, month, year]
     );
-    return result[0].total;
+    return Number(result[0].total);
   }
 
   private async getActiveLoanDeductions(employeeId: number): Promise<number> {
@@ -149,7 +152,7 @@ export class PayrollService {
        FROM loans WHERE employee_id = $1 AND status = 'active'`,
       [employeeId]
     );
-    return result[0].total;
+    return Number(result[0].total);
   }
 
   private async savePayrollRecord(data: any): Promise<PayrollRecord> {

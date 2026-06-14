@@ -302,6 +302,39 @@ async calculateSalary(employeeId, month, year) {
 
 ---
 
+## Bonus Finding — Legacy Calculation Logic Bug (Year Bleed)
+
+**Severity:** 🟠 High  
+**Category:** Logic Flaw / Data Integrity Bug  
+**Location:** `payroll.php` line 112–114 (`calculate_salary()` function)
+
+### Description
+In the legacy overtime calculation, the system fetches overtime hours from the database. However, the SQL query only filters by employee ID and month, failing to filter by the target year:
+```php
+$query3 = "SELECT SUM(overtime_hours) as total FROM overtime
+           WHERE employee_id = " . $employee_id . "
+           AND MONTH(date) = " . $month;
+```
+As a result, as the system remains in production across multiple years, any payroll calculation for June 2026 will also sum overtime hours logged in June 2025, June 2024, etc.
+
+### Impact
+- Inflated salary payments.
+- Discrepancies in payroll records year-over-year.
+- Accumulating financial error as database history grows.
+
+### Refactoring & Modernization Fix
+In the target TypeScript architecture (`src/PayrollService.refactored.ts`), this is resolved using type-safe parameters that explicitly match the correct year in the query using PostgreSQL's `EXTRACT`:
+```typescript
+const result = await this.payrollRepository.query(
+  `SELECT COALESCE(SUM(overtime_hours), 0) as total
+   FROM overtime
+   WHERE employee_id = $1 AND EXTRACT(MONTH FROM date) = $2 AND EXTRACT(YEAR FROM date) = $3`,
+  [employeeId, month, year]
+);
+```
+
+---
+
 ## Summary Table
 
 | # | Code Smell | Severity | Files Affected | Refactoring Applied |

@@ -182,6 +182,33 @@ $stmt->execute(['id' => $id]);
 
 ---
 
+## SLIDE 8A — Legacy Calculation Logic Bug
+
+**Heading:** Legacy Logic Flaw — The "Year Bleed" Bug
+
+- ❌ **The Legacy Code Query (`payroll.php`):**
+  ```php
+  $query3 = "SELECT SUM(overtime_hours) as total FROM overtime
+             WHERE employee_id = " . $employee_id . "
+             AND MONTH(date) = " . $month;
+  // MISSING Year filter: AND YEAR(date) = $year
+  ```
+- ⚠️ **The Issue:** Overtime hours from the same month of *all previous years* are added together.
+- 🔴 **Impact:** Payroll calculations become increasingly inflated and incorrect every year the database grows.
+- ✅ **The Fix (TypeScript):**
+  ```typescript
+  WHERE employee_id = $1 
+  AND EXTRACT(MONTH FROM date) = $2 
+  AND EXTRACT(YEAR FROM date) = $3
+  ```
+
+---
+**🎤 Speaker Notes:**
+"Beyond standard code smells and security vulnerabilities, my recovery analysis uncovered a severe logical bug embedded in the legacy payroll calculation. When summing overtime hours, the legacy code filters by month but completely ignores the year. In a production environment spanning multiple years, an employee calculating salary for June 2026 would automatically have their overtime hours from June 2025 and 2024 added as well. This causes silent, compounding financial losses. Our refactored TypeScript code solves this by explicitly extracting and matching both the month and the year."
+
+---
+
+
 ## SLIDE 9 — Re-Engineering Mapping
 
 **Heading:** Phase 3 — Every Problem Has a Proven Solution

@@ -42,11 +42,10 @@ This project presents a comprehensive architecture recovery and model-driven re-
 | Artifact | Location | Description |
 |---|---|---|
 | Architecture Recovery Report | `/architecture/architecture-recovery.md` | Full As-Is architecture analysis |
-| As-Is Architecture Diagram | `/diagrams/as-is-architecture.md` | Visual component & dependency map |
-| Code Smell Analysis | `/docs/code-smells.md` | 6 smells with code evidence & fixes |
-| Re-Engineering Plan | `/docs/reengineering-plan.md` | Refactoring techniques applied |
+| Code Smell & Refactoring Analysis | `/docs/code-smells.md` | 6 smells and mapped Fowler refactoring remedies |
 | Modernization Strategy | `/docs/modernization-strategy.md` | To-Be microservices architecture |
-| Legacy Source Code Sample | `/src/` | Representative legacy PHP code |
+| System Architecture Diagrams | `/diagrams/` | As-Is, To-Be, and Strangler Fig roadmap diagrams |
+| Legacy Source Code Sample | `/src/` | Representative legacy PHP code and refactored TypeScript |
 | Full Academic Report | `/report/full-report.md` | Complete academic submission |
 | Presentation Slides | `/docs/presentation-slides.md` | Speaker notes for final presentation |
 
@@ -101,4 +100,4 @@ code .
 ---
 
 *This project is submitted for academic evaluation. All analysis, diagrams, and documentation are original work.*  
-*© 2024 Rohail Rahmat | Karakorum International University, Gilgit*
+*© 2026 Rohail Rahmat | Karakorum International University, Gilgit*

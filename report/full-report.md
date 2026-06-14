@@ -11,7 +11,7 @@
 **Course:** Software Re-Engineering  
 **Supervisor:** Asif Hussain  
 **GitHub Repository:** https://github.com/rohailrahmat/legacy-payroll-reengineering  
-**Submission Date:** June 2024
+**Submission Date:** June 2026
 
 ---
 
@@ -212,6 +212,8 @@ Six major code smells were identified through systematic application of Fowler's
 
 Full evidence and analysis are documented in `/docs/code-smells.md`.
 
+**Additional Findings:** During the architecture recovery and code analysis phase, a severe database query logic bug (referred to as the "Year Bleed" bug) was discovered in `payroll.php`'s overtime calculation. The query `MONTH(date) = $month` completely lacks a year filter, meaning overtime hours from prior years are erroneously summed into the current period's calculation. This finding has been incorporated into the code smell and recovery reports.
+
 ---
 
 ## 7. Re-Engineering Techniques Applied
@@ -353,4 +355,4 @@ The complete project artifacts — source code, architecture diagrams, analysis 
 
 *Submitted for academic evaluation by Rohail Rahmat (2023-KIU-BS4163)*  
 *Karakorum International University, Gilgit | Supervisor: Asif Hussain*  
-*© 2024 — All analysis is original work*
+*© 2026 — All analysis is original work*
