@@ -45,7 +45,7 @@ This project presents a comprehensive architecture recovery and model-driven re-
 ## Setup Instructions
 
 ```bash
-git clone https://github.com/[your-username]/legacy-payroll-reengineering
+git clone https://github.com/rohailrahmat/legacy-payroll-reengineering.git
 cd legacy-payroll-reengineering
 code .
 ```
