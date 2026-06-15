@@ -26,3 +26,7 @@ yarn-error.log*
 *.sln
 *.sw?
 .DS_Store
+
+# Hidden folders
+.hidden_files/
+src/
