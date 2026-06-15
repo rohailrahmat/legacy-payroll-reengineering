@@ -4,14 +4,19 @@
 
 ---
 
-**Student Name:** Rohail Rahmat  
-**Roll Number:** 2023-KIU-BS4163  
+**Course:** Software Re-Engineering (6th Semester)  
 **University:** Karakorum International University, Gilgit  
 **Department:** Department of Computer Science  
-**Course:** Software Re-Engineering  
 **Supervisor:** Asif Hussain  
 **GitHub Repository:** https://github.com/rohailrahmat/legacy-payroll-reengineering  
 **Submission Date:** June 2026
+
+**Project Group Members (Group-04):**
+1. **Rohail Rahmat** (2023-KIU-BS4163)
+2. **Wasim Ali** (2023-KIU-BS4188)
+3. **Akhlaq Hussein** (2023-KIU-BS4116)
+4. **Yawar Abbas** (2023-KIU-BS4189)
+5. **Basit Ali** (2023-KIU-BS4651)
 
 ---
 

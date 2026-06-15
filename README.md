@@ -25,15 +25,16 @@ This project presents a comprehensive architecture recovery and model-driven re-
 
 ---
 
-## Student Information
+## Student & Group Information
 
 | Field | Details |
 |---|---|
-| Student Name | Rohail Rahmat |
-| Roll Number | 2023-KIU-BS4163 |
+| Group Number | Group-04 |
+| Semester | 6th Semester (BS Computer Science) |
 | University | Karakorum International University, Gilgit |
-| Supervisor | Asif Hussain |
-| GitHub | [@rohailrahmat](https://github.com/rohailrahmat) |
+| Supervisor | Instructor Asif Hussain |
+| Group Members | 1. **Rohail Rahmat** (2023-KIU-BS4163)<br>2. **Wasim Ali** (2023-KIU-BS4188)<br>3. **Akhlaq Hussein** (2023-KIU-BS4116)<br>4. **Yawar Abbas** (2023-KIU-BS4189)<br>5. **Basit Ali** (2023-KIU-BS4651) |
+| GitHub | [GitHub Repo](https://github.com/rohailrahmat/legacy-payroll-reengineering) |
 
 ---
 
@@ -41,61 +42,65 @@ This project presents a comprehensive architecture recovery and model-driven re-
 
 | Artifact | Location | Description |
 |---|---|---|
-| Architecture Recovery Report | `/architecture/architecture-recovery.md` | Full As-Is architecture analysis |
-| Code Smell & Refactoring Analysis | `/docs/code-smells.md` | 6 smells and mapped Fowler refactoring remedies |
-| Modernization Strategy | `/docs/modernization-strategy.md` | To-Be microservices architecture |
-| System Architecture Diagrams | `/diagrams/` | As-Is, To-Be, and Strangler Fig roadmap diagrams |
-| Legacy Source Code Sample | `/src/` | Representative legacy PHP code and refactored TypeScript |
-| Full Academic Report | `/report/full-report.md` | Complete academic submission |
-| Presentation Slides | `/docs/presentation-slides.md` | Speaker notes for final presentation |
+| **Interactive Showcase Dashboard** | [`/index.html`](file:///c:/Users/rohai/Downloads/legacy-payroll-reengineering/index.html) | **Live HTML5 application** containing slides, code comparison, strangler fig visualizer, live payroll sandbox, and report viewer |
+| Project Proposal | [`/PROPOSAL.md`](file:///c:/Users/rohai/Downloads/legacy-payroll-reengineering/PROPOSAL.md) | Official software re-engineering project proposal |
+| Architecture Recovery Report | [`/architecture/architecture-recovery.md`](file:///c:/Users/rohai/Downloads/legacy-payroll-reengineering/architecture/architecture-recovery.md) | Full As-Is architecture analysis |
+| Code Smell & Refactoring Analysis | [`/docs/code-smells.md`](file:///c:/Users/rohai/Downloads/legacy-payroll-reengineering/docs/code-smells.md) | 6 smells and mapped Fowler refactoring remedies |
+| Modernization Strategy | [`/docs/modernization-strategy.md`](file:///c:/Users/rohai/Downloads/legacy-payroll-reengineering/docs/modernization-strategy.md) | To-Be microservices architecture |
+| System Architecture Diagrams | [`/diagrams/`](file:///c:/Users/rohai/Downloads/legacy-payroll-reengineering/diagrams/) | As-Is, To-Be, and Strangler Fig roadmap diagrams |
+| Legacy Source Code Sample | [`/src/`](file:///c:/Users/rohai/Downloads/legacy-payroll-reengineering/src/) | Representative legacy PHP code and refactored TypeScript |
+| Full Academic Report | [`/report/full-report.md`](file:///c:/Users/rohai/Downloads/legacy-payroll-reengineering/report/full-report.md) | Complete academic submission |
+| Presentation Slides | [`/docs/presentation-slides.md`](file:///c:/Users/rohai/Downloads/legacy-payroll-reengineering/docs/presentation-slides.md) | Speaker notes for final presentation |
 
 ---
 
-## Key Findings
+## Interactive Showcase Dashboard
 
-- **6 major architectural violations** identified through static analysis and reverse engineering
-- **6 critical code smells** documented with real PHP code evidence
-- **2 critical security vulnerabilities** (SQL Injection + hardcoded credentials)
-- **Monolith → Microservices** migration path proposed using Strangler Fig Pattern
-- **REST API + React** target architecture designed with full 28-week roadmap
+The repository includes a single-page interactive showcase dashboard ([`index.html`](file:///c:/Users/rohai/Downloads/legacy-payroll-reengineering/index.html)) designed for final presentations and grading evaluation. 
+
+### Key Features
+1. **Presentation Slides Deck**: A fully integrated slide viewer of slides 1–15 with speaker notes toggling and keyboard navigation.
+2. **Code Smell side-by-side comparison**: View the legacy PHP smells side-by-side with refactored NestJS/TypeScript code blocks, highlighting specific violations.
+3. **Strangler Fig Simulator**: An interactive slider animating week-by-week (0 to 28) component migration.
+4. **Payroll Sandbox**: Side-by-side payroll calculator executing legacy procedural PHP calculations (simulating the "Year Bleed" bug and SQL Injection risk warning) vs modernized NestJS TypeORM parameterized service logic.
+5. **Academic Report Reader**: A clean typography layout of the full report with sidebar TOC navigation.
 
 ---
 
-## Setup Instructions
+## Run and Setup Instructions
+
+### Local Execution (No Server Needed)
+Simply open the [`index.html`](file:///c:/Users/rohai/Downloads/legacy-payroll-reengineering/index.html) file directly in any modern browser. Because all report text, presentation slides, code blocks, and simulation libraries are fully self-contained in the file, there are **no CORS issues** when running from the `file://` protocol.
 
 ```bash
-git clone https://github.com/rohailrahmat/legacy-payroll-reengineering
-cd legacy-payroll-reengineering
-# Open in VS Code
-code .
+# Double-click index.html or open via terminal:
+# Windows (PowerShell)
+Start-Process "index.html"
 ```
 
----
-
-## Report Structure
-
-1. Introduction & Motivation
-2. Legacy System Overview
-3. Architecture Recovery (As-Is)
-4. Code Smell & Anti-Pattern Analysis
-5. Re-Engineering Techniques Applied
-6. Proposed Modernization Strategy (To-Be Architecture)
-7. Conclusion & References
+### GitHub Pages Hosting (For Working Public URL)
+To deploy this project to GitHub Pages:
+1. Push this repository to your GitHub account: `https://github.com/rohailrahmat/legacy-payroll-reengineering`.
+2. Go to **Settings** under your GitHub repository dashboard.
+3. Click on **Pages** in the left sidebar.
+4. Under **Build and deployment**, set the source branch to `main` (or the branch you pushed to) and the folder to `/ (root)`.
+5. Click **Save**. GitHub will provide your live URL (e.g. `https://rohailrahmat.github.io/legacy-payroll-reengineering`). This serves as the public URL required by the professor!
 
 ---
 
-## Technology Comparison
+## Technical Re-Engineering Code Build
 
-| Dimension | Legacy (As-Is) | Modern (To-Be) |
-|---|---|---|
-| Architecture | Monolith | Microservices |
-| Language | PHP 5.x Procedural | Node.js + TypeScript |
-| Frontend | HTML + jQuery | React.js |
-| Database | MySQL 5.x (shared) | PostgreSQL (per service) |
-| Security | SQL injection, no HTTPS | JWT, bcrypt, HTTPS enforced |
-| Deployment | Manual FTP upload | Docker + Kubernetes + CI/CD |
-| Testing | 0% coverage | Unit + Integration + E2E |
-| API | None | Complete REST API |
+To build the TypeScript refactored code:
+
+```bash
+# 1. Install NestJS & TypeORM packages
+npm install
+
+# 2. Compile TypeScript project
+npm run build
+```
+
+The compiled JavaScript files will be outputted under the `/dist/` folder.
 
 ---
 
