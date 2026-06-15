@@ -1,0 +1,3249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Software Re-Engineering Showcase — Legacy Payroll Re-engineering</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Lora:ital,wght@0,400;0,500;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <style>
+    /* -------------------------------------------------------------
+       DESIGN SYSTEM & CSS VARIABLES
+       ------------------------------------------------------------- */
+    :root {
+      --bg-dark: #0b0f19;
+      --bg-card: rgba(22, 27, 34, 0.7);
+      --bg-card-hover: rgba(22, 27, 34, 0.9);
+      --border-color: rgba(48, 54, 61, 0.6);
+      --border-focus: #58a6ff;
+      --text-main: #c9d1d9;
+      --text-muted: #8b949e;
+      --text-bright: #f0f6fc;
+      
+      --color-primary: #58a6ff;
+      --color-primary-rgb: 88, 166, 255;
+      --color-success: #3fb950;
+      --color-success-rgb: 63, 185, 80;
+      --color-warning: #d29922;
+      --color-warning-rgb: 210, 153, 34;
+      --color-danger: #f85149;
+      --color-danger-rgb: 248, 81, 73;
+      --color-info: #bc8cff;
+      
+      --sidebar-width: 280px;
+      --header-height: 70px;
+      --transition-speed: 0.3s;
+      
+      --font-sans: 'Plus Jakarta Sans', sans-serif;
+      --font-serif: 'Lora', serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    /* -------------------------------------------------------------
+       BASE STYLES
+       ------------------------------------------------------------- */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      overflow-x: hidden;
+      min-height: 100vh;
+      display: flex;
+    }
+
+    a {
+      color: var(--color-primary);
+      text-decoration: none;
+      transition: color var(--transition-speed);
+    }
+    a:hover {
+      color: #79c0ff;
+    }
+
+    button, input, select, textarea {
+      font-family: inherit;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0d1117;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #30363d;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #8b949e;
+    }
+
+    /* -------------------------------------------------------------
+       LAYOUT STRUCTURE
+       ------------------------------------------------------------- */
+    /* Sidebar Navigation */
+    aside {
+      width: var(--sidebar-width);
+      background: #0d1117;
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      z-index: 100;
+      transition: transform var(--transition-speed);
+    }
+
+    .sidebar-header {
+      padding: 24px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .sidebar-logo {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--text-bright);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      letter-spacing: -0.5px;
+    }
+
+    .sidebar-logo i {
+      color: var(--color-primary);
+      font-size: 1.35rem;
+      filter: drop-shadow(0 0 8px rgba(88, 166, 255, 0.5));
+    }
+
+    .badge-uni {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--color-info);
+      background: rgba(188, 140, 255, 0.1);
+      padding: 4px 8px;
+      border-radius: 12px;
+      width: max-content;
+    }
+
+    .sidebar-menu {
+      flex: 1;
+      padding: 24px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      overflow-y: auto;
+    }
+
+    .menu-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      color: var(--text-muted);
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 500;
+      font-size: 0.95rem;
+      transition: all var(--transition-speed) ease;
+    }
+
+    .menu-item:hover {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-bright);
+    }
+
+    .menu-item.active {
+      background: rgba(88, 166, 255, 0.15);
+      color: var(--color-primary);
+      font-weight: 600;
+    }
+
+    .menu-item i {
+      font-size: 1.1rem;
+      width: 20px;
+      text-align: center;
+    }
+
+    .sidebar-footer {
+      padding: 20px 24px;
+      border-top: 1px solid var(--border-color);
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .student-name {
+      font-weight: 600;
+      color: var(--text-bright);
+    }
+
+    /* Main Content Area */
+    main {
+      margin-left: var(--sidebar-width);
+      flex: 1;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    header {
+      height: var(--header-height);
+      border-bottom: 1px solid var(--border-color);
+      background: rgba(13, 17, 23, 0.8);
+      backdrop-filter: blur(12px);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 40px;
+      position: sticky;
+      top: 0;
+      z-index: 90;
+    }
+
+    .header-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text-bright);
+    }
+
+    .github-link-btn {
+      background: #21262d;
+      border: 1px solid var(--border-color);
+      color: var(--text-bright);
+      padding: 8px 16px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all var(--transition-speed);
+    }
+
+    .github-link-btn:hover {
+      background: #30363d;
+      border-color: #8b949e;
+    }
+
+    .content-wrapper {
+      padding: 40px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+      max-width: 1400px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    /* Tab Switcher Logic */
+    .tab-content {
+      display: none;
+      animation: fadeIn var(--transition-speed) ease-in-out;
+    }
+
+    .tab-content.active {
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* -------------------------------------------------------------
+       UI COMPONENTS & DASHBOARD CARDS
+       ------------------------------------------------------------- */
+    /* Hero Section */
+    .hero-banner {
+      background: radial-gradient(circle at top right, rgba(88, 166, 255, 0.15), transparent 60%),
+                  radial-gradient(circle at bottom left, rgba(188, 140, 255, 0.1), transparent 60%),
+                  var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 48px;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+    }
+
+    .hero-tag {
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--color-primary);
+      background: rgba(88, 166, 255, 0.1);
+      padding: 6px 12px;
+      border-radius: 20px;
+      width: max-content;
+    }
+
+    .hero-title {
+      font-size: 2.25rem;
+      font-weight: 800;
+      color: var(--text-bright);
+      line-height: 1.25;
+      letter-spacing: -0.5px;
+    }
+
+    .hero-desc {
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      max-width: 800px;
+      line-height: 1.6;
+    }
+
+    .hero-meta-grid {
+      display: flex;
+      gap: 40px;
+      margin-top: 16px;
+      flex-wrap: wrap;
+    }
+
+    .hero-meta-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .hero-meta-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+    }
+
+    .hero-meta-val {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-bright);
+    }
+
+    /* Grid layout */
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 24px;
+    }
+
+    /* Glass Cards */
+    .glass-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      position: relative;
+      transition: all var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    }
+
+    .glass-card:hover {
+      background: var(--bg-card-hover);
+      border-color: rgba(88, 166, 255, 0.4);
+      transform: translateY(-4px);
+    }
+
+    .card-icon {
+      font-size: 1.8rem;
+      width: 48px;
+      height: 48px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.05);
+      margin-bottom: 8px;
+    }
+
+    .card-icon.primary { color: var(--color-primary); background: rgba(88,166,255,0.1); }
+    .card-icon.success { color: var(--color-success); background: rgba(63,185,80,0.1); }
+    .card-icon.warning { color: var(--color-warning); background: rgba(210,153,34,0.1); }
+    .card-icon.danger { color: var(--color-danger); background: rgba(248,81,73,0.1); }
+    .card-icon.info { color: var(--color-info); background: rgba(188,140,255,0.1); }
+
+    .card-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--text-bright);
+    }
+
+    .card-stat {
+      font-size: 2.25rem;
+      font-weight: 800;
+      color: var(--text-bright);
+      font-family: var(--font-mono);
+    }
+
+    .card-desc {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* -------------------------------------------------------------
+       SLIDE PRESENTATION MODULE
+       ------------------------------------------------------------- */
+    .presentation-container {
+      background: #0d1117;
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      display: flex;
+      flex-direction: column;
+      min-height: 620px;
+    }
+
+    .presentation-stage {
+      flex: 1;
+      background: radial-gradient(circle, #1c2128 0%, #0d1117 100%);
+      padding: 60px 80px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .slide-body {
+      opacity: 1;
+      transition: opacity 0.25s ease-in-out, transform 0.25s ease-in-out;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+
+    .slide-header {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--color-primary);
+      font-weight: 700;
+    }
+
+    .slide-title {
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: var(--text-bright);
+      line-height: 1.2;
+      border-bottom: 2px solid rgba(88, 166, 255, 0.2);
+      padding-bottom: 16px;
+    }
+
+    .slide-content {
+      font-size: 1.15rem;
+      color: var(--text-main);
+      line-height: 1.6;
+    }
+
+    .slide-content ul {
+      margin-left: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .slide-content li {
+      margin-bottom: 6px;
+    }
+
+    .slide-quote {
+      border-left: 4px solid var(--color-primary);
+      background: rgba(88, 166, 255, 0.05);
+      padding: 16px 24px;
+      font-style: italic;
+      border-radius: 0 8px 8px 0;
+      margin: 16px 0;
+    }
+
+    /* Speaker Notes Drawer */
+    .speaker-notes-drawer {
+      background: #161b22;
+      border-top: 1px solid var(--border-color);
+      padding: 20px 40px;
+      transition: all var(--transition-speed);
+      max-height: 150px;
+      overflow-y: auto;
+    }
+
+    .speaker-notes-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--color-warning);
+      margin-bottom: 8px;
+    }
+
+    .speaker-notes-content {
+      font-size: 0.95rem;
+      color: #8b949e;
+      line-height: 1.5;
+    }
+
+    /* Presenter Controls */
+    .presentation-controls {
+      background: #0d1117;
+      border-top: 1px solid var(--border-color);
+      padding: 16px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .control-buttons {
+      display: flex;
+      gap: 12px;
+    }
+
+    .btn-slide {
+      background: #21262d;
+      border: 1px solid var(--border-color);
+      color: var(--text-bright);
+      padding: 10px 18px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+
+    .btn-slide:hover:not(:disabled) {
+      background: #30363d;
+      border-color: #8b949e;
+    }
+
+    .btn-slide:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .slide-progress {
+      font-family: var(--font-mono);
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+
+    /* -------------------------------------------------------------
+       CODE SMELL SPLIT COMPARISON VIEW
+       ------------------------------------------------------------- */
+    .split-code-container {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .smells-tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 12px;
+    }
+
+    .tab-smell {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all var(--transition-speed);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .tab-smell:hover {
+      color: var(--text-bright);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .tab-smell.active {
+      background: #21262d;
+      border-color: var(--border-color);
+      color: var(--text-bright);
+    }
+
+    .tab-smell.critical.active {
+      border-bottom: 2px solid var(--color-danger);
+    }
+    .tab-smell.high.active {
+      border-bottom: 2px solid var(--color-warning);
+    }
+
+    .smell-info-panel {
+      background: rgba(22, 27, 34, 0.5);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 20px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .smell-meta {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .severity-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 4px 8px;
+      border-radius: 4px;
+      color: #fff;
+    }
+    .severity-badge.critical { background: var(--color-danger); }
+    .severity-badge.high { background: var(--color-warning); }
+
+    .remedy-badge {
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: rgba(63, 185, 80, 0.15);
+      color: var(--color-success);
+      border: 1px solid rgba(63, 185, 80, 0.3);
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+
+    .smell-detail-text {
+      font-size: 0.95rem;
+      line-height: 1.5;
+      color: var(--text-main);
+    }
+
+    .split-screen {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+      gap: 20px;
+    }
+
+    .code-panel {
+      background: #0d1117;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      height: 520px;
+    }
+
+    .code-panel-header {
+      background: #161b22;
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .code-lang-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .code-lang-label i.fa-php { color: #8892bf; }
+    .code-lang-label i.fa-js { color: #3178c6; }
+
+    .code-panel-body {
+      flex: 1;
+      padding: 20px;
+      overflow: auto;
+      font-family: var(--font-mono);
+      font-size: 0.825rem;
+      line-height: 1.5;
+      white-space: pre;
+    }
+
+    .highlight-line-del {
+      background-color: rgba(248, 81, 73, 0.15);
+      display: block;
+      width: 100%;
+      border-left: 3px solid var(--color-danger);
+      padding-left: 4px;
+    }
+
+    .highlight-line-add {
+      background-color: rgba(63, 185, 80, 0.15);
+      display: block;
+      width: 100%;
+      border-left: 3px solid var(--color-success);
+      padding-left: 4px;
+    }
+
+    /* -------------------------------------------------------------
+       STRANGLER FIG ROADMAP SIMULATOR
+       ------------------------------------------------------------- */
+    .simulator-container {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    }
+
+    .slider-section {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      background: rgba(255,255,255,0.02);
+      padding: 24px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .slider-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .slider-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text-bright);
+    }
+
+    .slider-week-display {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--color-primary);
+      font-family: var(--font-mono);
+    }
+
+    .range-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 10px;
+      border-radius: 5px;
+      background: #21262d;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .range-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--color-primary);
+      box-shadow: 0 0 10px rgba(88, 166, 255, 0.8);
+      transition: background 0.15s, transform 0.15s;
+    }
+
+    .range-slider::-webkit-slider-thumb:hover {
+      background: #79c0ff;
+      transform: scale(1.1);
+    }
+
+    .timeline-steps {
+      display: flex;
+      justify-content: space-between;
+      padding: 0 8px;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .migration-description-card {
+      background: rgba(22, 27, 34, 0.8);
+      border-left: 4px solid var(--color-primary);
+      padding: 20px;
+      border-radius: 0 8px 8px 0;
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+
+    .visualizer-architecture-stage {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 40px;
+      align-items: center;
+      padding: 20px 0;
+    }
+
+    @media (max-width: 900px) {
+      .visualizer-architecture-stage {
+        grid-template-columns: 1fr;
+        gap: 30px;
+      }
+    }
+
+    .arch-zone {
+      border: 2px dashed var(--border-color);
+      border-radius: 12px;
+      padding: 24px;
+      min-height: 380px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      background: rgba(0, 0, 0, 0.2);
+      position: relative;
+    }
+
+    .arch-zone-title {
+      font-size: 0.9rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      text-align: center;
+    }
+
+    .arch-zone.legacy.active {
+      border-color: var(--color-danger);
+      background: rgba(248, 81, 73, 0.02);
+    }
+
+    .arch-zone.modern.active {
+      border-color: var(--color-success);
+      background: rgba(63, 185, 80, 0.02);
+    }
+
+    .gateway-node {
+      grid-column: 1 / -1;
+      width: 100%;
+      background: #161b22;
+      border: 1px solid var(--border-color);
+      padding: 12px;
+      text-align: center;
+      font-weight: 700;
+      border-radius: 6px;
+      color: var(--text-muted);
+      transition: all var(--transition-speed);
+    }
+
+    .gateway-node.active {
+      border-color: var(--color-primary);
+      color: var(--color-primary);
+      background: rgba(88, 166, 255, 0.08);
+      box-shadow: 0 0 12px rgba(88, 166, 255, 0.2);
+    }
+
+    .service-node {
+      background: #161b22;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all var(--transition-speed) ease;
+      position: relative;
+    }
+
+    .service-node.strangled {
+      opacity: 0.2;
+      transform: scale(0.95);
+      border-color: var(--border-color) !important;
+      color: var(--text-muted) !important;
+    }
+
+    .service-node.active-modern {
+      border-color: var(--color-success);
+      background: rgba(63, 185, 80, 0.08);
+      color: var(--text-bright);
+      box-shadow: 0 0 12px rgba(63, 185, 80, 0.25);
+    }
+
+    .service-node-title {
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    .service-node-db {
+      font-size: 0.7rem;
+      background: rgba(255,255,255,0.06);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: var(--font-mono);
+      color: var(--text-muted);
+    }
+
+    .flow-arrow-indicator {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      font-size: 1.5rem;
+    }
+
+    /* -------------------------------------------------------------
+       PAYROLL SANDBOX (LIVE CALCULATOR)
+       ------------------------------------------------------------- */
+    .sandbox-layout {
+      display: grid;
+      grid-template-columns: 350px 1fr;
+      gap: 32px;
+    }
+
+    @media (max-width: 1000px) {
+      .sandbox-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .input-form-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .form-label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+    }
+
+    .form-input {
+      background: #0d1117;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 10px 14px;
+      color: var(--text-bright);
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color var(--transition-speed);
+    }
+
+    .form-input:focus {
+      border-color: var(--border-focus);
+    }
+
+    .btn-calculate {
+      background: var(--color-primary);
+      border: none;
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: all var(--transition-speed);
+      box-shadow: 0 4px 12px rgba(88, 166, 255, 0.3);
+    }
+
+    .btn-calculate:hover {
+      background: #79c0ff;
+      transform: translateY(-2px);
+    }
+
+    .database-mock-indicator {
+      border: 1px solid rgba(210, 153, 34, 0.3);
+      background: rgba(210, 153, 34, 0.05);
+      border-radius: 8px;
+      padding: 16px;
+      font-size: 0.8rem;
+      line-height: 1.4;
+      color: var(--color-warning);
+    }
+
+    .simulation-outputs-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    @media (max-width: 800px) {
+      .simulation-outputs-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .sim-card {
+      background: #0d1117;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      min-height: 400px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    .sim-card.legacy {
+      border-top: 4px solid var(--color-danger);
+    }
+
+    .sim-card.modern {
+      border-top: 4px solid var(--color-success);
+    }
+
+    .sim-card-header {
+      background: #161b22;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .sim-card-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text-bright);
+    }
+
+    .sim-badge {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+    .sim-badge.danger { background: rgba(248, 81, 73, 0.15); color: var(--color-danger); border: 1px solid rgba(248,81,73,0.3); }
+    .sim-badge.success { background: rgba(63, 185, 80, 0.15); color: var(--color-success); border: 1px solid rgba(63,185,80,0.3); }
+
+    .sim-card-body {
+      flex: 1;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      overflow-y: auto;
+    }
+
+    .sim-log-panel {
+      background: rgba(0,0,0,0.3);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 12px;
+      font-family: var(--font-mono);
+      font-size: 0.775rem;
+      max-height: 120px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .log-entry { display: flex; gap: 8px; }
+    .log-entry.warn { color: var(--color-warning); }
+    .log-entry.err { color: var(--color-danger); }
+    .log-entry.success { color: var(--color-success); }
+    .log-entry.info { color: var(--color-primary); }
+
+    .payslip-preview {
+      background: #ffffff;
+      color: #333333;
+      padding: 20px;
+      border-radius: 6px;
+      font-family: Arial, sans-serif;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+      border: 1px solid #dddddd;
+    }
+
+    .payslip-preview h1 {
+      font-size: 1.2rem;
+      color: #111111;
+      border-bottom: 2px solid #333333;
+      padding-bottom: 8px;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .payslip-preview p {
+      font-size: 0.85rem;
+      margin-bottom: 8px;
+      line-height: 1.4;
+    }
+
+    .modern-payroll-display {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .json-code-block {
+      background: #080c10;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 14px;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      color: #39d353;
+      overflow-x: auto;
+      white-space: pre;
+    }
+
+    .security-audit-alert {
+      border: 1px solid rgba(248, 81, 73, 0.3);
+      background: rgba(248, 81, 73, 0.05);
+      border-radius: 8px;
+      padding: 16px;
+      font-size: 0.85rem;
+      line-height: 1.5;
+      color: #ff7b72;
+    }
+
+    .security-audit-success {
+      border: 1px solid rgba(63, 185, 80, 0.3);
+      background: rgba(63, 185, 80, 0.05);
+      border-radius: 8px;
+      padding: 16px;
+      font-size: 0.85rem;
+      line-height: 1.5;
+      color: #56d364;
+    }
+
+    /* -------------------------------------------------------------
+       ACADEMIC REPORT READER
+       ------------------------------------------------------------- */
+    .report-layout {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 40px;
+    }
+
+    @media (max-width: 990px) {
+      .report-layout {
+        grid-template-columns: 1fr;
+      }
+      .report-sidebar-toc {
+        display: none;
+      }
+    }
+
+    .report-sidebar-toc {
+      position: sticky;
+      top: 100px;
+      height: calc(100vh - 140px);
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      padding-right: 16px;
+      border-right: 1px solid var(--border-color);
+    }
+
+    .toc-title {
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+    }
+
+    .toc-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .toc-link {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: color 0.2s;
+      display: block;
+      padding: 4px 0;
+    }
+
+    .toc-link:hover, .toc-link.active {
+      color: var(--color-primary);
+      font-weight: 600;
+    }
+
+    .report-content-body {
+      font-family: var(--font-serif);
+      font-size: 1.05rem;
+      line-height: 1.7;
+      color: #e6edf3;
+      max-width: 840px;
+    }
+
+    .report-content-body h1, .report-content-body h2, .report-content-body h3 {
+      font-family: var(--font-sans);
+      color: var(--text-bright);
+      margin-top: 36px;
+      margin-bottom: 16px;
+      font-weight: 700;
+    }
+
+    .report-content-body h1 { font-size: 2rem; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; }
+    .report-content-body h2 { font-size: 1.5rem; }
+    .report-content-body h3 { font-size: 1.2rem; }
+
+    .report-content-body p {
+      margin-bottom: 20px;
+    }
+
+    .report-content-body blockquote {
+      border-left: 4px solid var(--color-info);
+      background: rgba(188, 140, 255, 0.05);
+      padding: 16px 24px;
+      margin: 24px 0;
+      font-style: italic;
+      border-radius: 0 8px 8px 0;
+    }
+
+    .report-content-body table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 24px 0;
+      font-family: var(--font-sans);
+      font-size: 0.9rem;
+    }
+
+    .report-content-body th, .report-content-body td {
+      border: 1px solid var(--border-color);
+      padding: 12px 16px;
+      text-align: left;
+    }
+
+    .report-content-body th {
+      background: #161b22;
+      color: var(--text-bright);
+      font-weight: 600;
+    }
+
+    .report-content-body tr:nth-child(even) {
+      background: rgba(255,255,255,0.02);
+    }
+
+    .report-content-body pre {
+      background: #0d1117;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 16px;
+      overflow: auto;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      margin: 24px 0;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- SIDEBAR NAVIGATION -->
+  <aside>
+    <div class="sidebar-header">
+      <div class="sidebar-logo">
+        <i class="fa-solid fa-code-branch"></i>
+        <span>Re-Engineering</span>
+      </div>
+      <span class="badge-uni">KIU GILGIT</span>
+    </div>
+    
+    <div class="sidebar-menu">
+      <div class="menu-item" onclick="switchTab('dashboard', this)">
+        <i class="fa-solid fa-chart-line"></i>
+        <span>Dashboard</span>
+      </div>
+      <div class="menu-item" onclick="switchTab('presentation', this)">
+        <i class="fa-solid fa-chalkboard-user"></i>
+        <span>Presentation Slides</span>
+      </div>
+      <div class="menu-item" onclick="switchTab('smells', this)">
+        <i class="fa-solid fa-bug"></i>
+        <span>Code Smell Explorer</span>
+      </div>
+      <div class="menu-item" onclick="switchTab('strangler', this)">
+        <i class="fa-solid fa-network-wired"></i>
+        <span>Strangler Fig Simulator</span>
+      </div>
+      <div class="menu-item active" onclick="switchTab('sandbox', this)">
+        <i class="fa-solid fa-flask"></i>
+        <span>Payroll Sandbox</span>
+      </div>
+      <div class="menu-item" onclick="switchTab('report', this)">
+        <i class="fa-solid fa-file-invoice"></i>
+        <span>Academic Report</span>
+      </div>
+    </div>
+    
+    <div class="sidebar-footer">
+      <div class="student-name">Group-04 (6th Sem)</div>
+      <div style="font-size:0.75rem; color:var(--text-muted); line-height:1.3; margin-top:4px;">
+        Rohail, Wasim, Akhlaq,<br>Yawar, Basit
+      </div>
+      <div style="margin-top:6px;">Supervisor: Asif Hussain</div>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT AREA -->
+  <main>
+    <header>
+      <div class="header-title" id="header-title-text">Dashboard Overview</div>
+      <a href="https://github.com/rohailrahmat/legacy-payroll-reengineering" target="_blank" class="github-link-btn">
+        <i class="fa-brands fa-github"></i>
+        <span>GitHub Repository</span>
+      </a>
+    </header>
+
+    <div class="content-wrapper">
+
+      <!-- =============================================================
+           DASHBOARD TAB
+           ============================================================= -->
+      <div id="tab-dashboard" class="tab-content">
+        <div class="hero-banner">
+          <span class="hero-tag">Semester Project Showcase</span>
+          <h1 class="hero-title">Architecture Recovery and Model-Driven Re-Engineering of Legacy Software Systems for Modernization</h1>
+          <p class="hero-desc">
+            A comprehensive case study applying systematic software re-engineering, static analysis, and design pattern migrations to transform a vulnerable monolithic PHP Payroll System into a modern, cloud-native TypeScript microservices application.
+          </p>
+          <div class="hero-meta-grid">
+            <div class="hero-meta-item">
+              <span class="hero-meta-label">Group Members (Group-04)</span>
+              <span class="hero-meta-val">Rohail Rahmat, Wasim Ali, Akhlaq Hussein, Yawar Abbas, Basit Ali</span>
+            </div>
+            <div class="hero-meta-item">
+              <span class="hero-meta-label">Course</span>
+              <span class="hero-meta-val">Software Re-Engineering (6th Semester)</span>
+            </div>
+            <div class="hero-meta-item">
+              <span class="hero-meta-label">Supervisor</span>
+              <span class="hero-meta-val">Instructor Asif Hussain</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-3">
+          <div class="glass-card">
+            <div class="card-icon danger">
+              <i class="fa-solid fa-shield-virus"></i>
+            </div>
+            <h3 class="card-title">Vulnerability Metrics</h3>
+            <div class="card-stat">6 smells</div>
+            <p class="card-desc">
+              Identified 6 critical structural and security issues, including direct SQL Injection paths and the "Year Bleed" calculation bug.
+            </p>
+          </div>
+          
+          <div class="glass-card">
+            <div class="card-icon warning">
+              <i class="fa-solid fa-code"></i>
+            </div>
+            <h3 class="card-title">Refactoring Catalog</h3>
+            <div class="card-stat">Fowler Mapped</div>
+            <p class="card-desc">
+              Applied Extract Class, Decompose Method, Move Method, and Strategy Pattern to modularize legacy procedures.
+            </p>
+          </div>
+
+          <div class="glass-card">
+            <div class="card-icon success">
+              <i class="fa-solid fa-diagram-project"></i>
+            </div>
+            <h3 class="card-title">Proposed Target</h3>
+            <div class="card-stat">5 Services</div>
+            <p class="card-desc">
+              Designed microservices structure using Node.js, TypeScript, PostgreSQL, and RabbitMQ with an API Gateway.
+            </p>
+          </div>
+        </div>
+
+        <div class="glass-card">
+          <h3 class="card-title"><i class="fa-solid fa-bullseye" style="color: var(--color-primary); margin-right: 8px;"></i> Re-Engineering Goals Accomplished</h3>
+          <p class="card-desc" style="font-size: 1rem;">
+            This project provides the complete analytical baseline for software modernization. It recovers documentation for an undocumented legacy program, categorizes technical debt using Martin Fowler's taxonomies, establishes clean, side-by-side refactored code demonstrations, and plots a realistic Strangler Fig-based roadmap. Explore the interactive tabs on the left sidebar to inspect the presentation, source code smell diffs, the live sandbox simulator, and the full academic report.
+          </p>
+        </div>
+      </div>
+
+      <!-- =============================================================
+           PRESENTATION SLIDES TAB
+           ============================================================= -->
+      <div id="tab-presentation" class="tab-content">
+        <div class="presentation-container">
+          <div class="presentation-stage">
+            <div class="slide-body" id="slide-viewer">
+              <!-- Rendered Dynamically -->
+            </div>
+          </div>
+          
+          <!-- Speaker Notes Panel -->
+          <div class="speaker-notes-drawer">
+            <div class="speaker-notes-header">
+              <i class="fa-solid fa-volume-high"></i>
+              <span>Speaker Notes / Presentation Guidance</span>
+            </div>
+            <div class="speaker-notes-content" id="slide-notes">
+              <!-- Rendered Dynamically -->
+            </div>
+          </div>
+          
+          <div class="presentation-controls">
+            <div class="slide-progress" id="slide-num-indicator">Slide 1 of 15</div>
+            <div class="control-buttons">
+              <button class="btn-slide" id="btn-prev-slide" onclick="changeSlide(-1)">
+                <i class="fa-solid fa-arrow-left"></i> Previous
+              </button>
+              <button class="btn-slide" id="btn-next-slide" onclick="changeSlide(1)">
+                Next <i class="fa-solid fa-arrow-right"></i>
+              </button>
+              <button class="btn-slide" onclick="toggleFullscreen()">
+                <i class="fa-solid fa-expand"></i> Fullscreen
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- =============================================================
+           CODE SMELLS TAB
+           ============================================================= -->
+      <div id="tab-smells" class="tab-content">
+        <div class="split-code-container">
+          <div class="smells-tabs">
+            <button class="tab-smell critical active" onclick="selectSmell(1, this)">Smell 1: God File</button>
+            <button class="tab-smell critical" onclick="selectSmell(2, this)">Smell 2: SQL Injection</button>
+            <button class="tab-smell high" onclick="selectSmell(3, this)">Smell 3: Duplicate Code</button>
+            <button class="tab-smell high" onclick="selectSmell(4, this)">Smell 4: Shotgun Surgery</button>
+            <button class="tab-smell high" onclick="selectSmell(5, this)">Smell 5: Hardcoded Config</button>
+            <button class="tab-smell high" onclick="selectSmell(6, this)">Smell 6: Long Method</button>
+            <button class="tab-smell high" onclick="selectSmell(7, this)">Bonus: Year Bleed Bug</button>
+          </div>
+
+          <div class="smell-info-panel">
+            <div class="smell-meta">
+              <span class="severity-badge critical" id="smell-severity">Critical Severity</span>
+              <span class="remedy-badge" id="smell-remedy">Refactoring: Extract Class</span>
+              <span style="color: var(--text-muted); font-size: 0.85rem;" id="smell-location">Location: payroll.php (2,000+ lines)</span>
+            </div>
+            <p class="smell-detail-text" id="smell-desc">
+              The entire system—employee database, payroll calculations, leave logging, and HTML generation—is crammed inside a single global script. This violates the Single Responsibility Principle.
+            </p>
+          </div>
+
+          <div class="split-screen">
+            <!-- Legacy PHP Panel -->
+            <div class="code-panel">
+              <div class="code-panel-header">
+                <span class="code-lang-label"><i class="fa-brands fa-php"></i> Legacy PHP (Vulnerable Monolith)</span>
+                <span id="legacy-filename">payroll.php</span>
+              </div>
+              <div class="code-panel-body" id="legacy-code-content">
+                <!-- Rendered dynamically -->
+              </div>
+            </div>
+            
+            <!-- Refactored TS Panel -->
+            <div class="code-panel">
+              <div class="code-panel-header">
+                <span class="code-lang-label"><i class="fa-brands fa-js"></i> Refactored TypeScript (NestJS Service)</span>
+                <span id="refactored-filename">PayrollService.ts</span>
+              </div>
+              <div class="code-panel-body" id="refactored-code-content">
+                <!-- Rendered dynamically -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- =============================================================
+           STRANGLER FIG SIMULATOR
+           ============================================================= -->
+      <div id="tab-strangler" class="tab-content">
+        <div class="simulator-container">
+          <div class="slider-section">
+            <div class="slider-header">
+              <span class="slider-title">Decommissioning Phase Timeline</span>
+              <span class="slider-week-display" id="simulator-week-val">Week 0</span>
+            </div>
+            <input type="range" min="0" max="28" value="0" class="range-slider" id="strangler-week-slider" oninput="updateStranglerSimulator(this.value)">
+            <div class="timeline-steps">
+              <span>Week 0 (Monolith)</span>
+              <span>Week 4 (Foundation)</span>
+              <span>Week 10 (Employee)</span>
+              <span>Week 18 (Payroll & Leave)</span>
+              <span>Week 24 (Frontend)</span>
+              <span>Week 28 (Shutdown)</span>
+            </div>
+          </div>
+
+          <div class="migration-description-card" id="migration-status-desc">
+            <strong>Current State:</strong> The legacy monolithic system handles all operations. The database is shared, and there are no external integration entry points. No modernization activity has started yet.
+          </div>
+
+          <div class="visualizer-architecture-stage">
+            <!-- Legacy Domain -->
+            <div class="arch-zone legacy active" id="legacy-domain-card">
+              <div class="arch-zone-title">Legacy Domain (Monolith Box)</div>
+              
+              <div class="service-node" id="legacy-node-emp">
+                <span class="service-node-title">Employee CRUD Functions</span>
+                <span class="service-node-db">MySQL DB</span>
+              </div>
+              <div class="service-node" id="legacy-node-pay">
+                <span class="service-node-title">calculate_salary() Procedural</span>
+                <span class="service-node-db">MySQL DB</span>
+              </div>
+              <div class="service-node" id="legacy-node-leave">
+                <span class="service-node-title">applyLeave() Inline Functions</span>
+                <span class="service-node-db">MySQL DB</span>
+              </div>
+              <div class="service-node" id="legacy-node-rep">
+                <span class="service-node-title">generatePayrollReport() mixed SQL</span>
+                <span class="service-node-db">MySQL DB</span>
+              </div>
+            </div>
+
+            <div class="flow-arrow-indicator">
+              <i class="fa-solid fa-right-left"></i>
+              <span style="font-size: 0.7rem; font-weight: 700; margin-top: 8px;">strangler routing</span>
+            </div>
+
+            <!-- Modern Cloud Domain -->
+            <div class="arch-zone modern" id="modern-domain-card">
+              <div class="arch-zone-title">Modernized Target (Kubernetes / Node.js)</div>
+              
+              <div class="gateway-node" id="modern-node-gateway">
+                API Gateway (Nginx) — Inactive
+              </div>
+              
+              <div class="service-node" id="modern-node-emp">
+                <span class="service-node-title">Employee Service</span>
+                <span class="service-node-db">PostgreSQL (isolated)</span>
+              </div>
+              <div class="service-node" id="modern-node-pay">
+                <span class="service-node-title">Payroll Service</span>
+                <span class="service-node-db">PostgreSQL (isolated)</span>
+              </div>
+              <div class="service-node" id="modern-node-leave">
+                <span class="service-node-title">Leave Service</span>
+                <span class="service-node-db">PostgreSQL (isolated)</span>
+              </div>
+              <div class="service-node" id="modern-node-notif">
+                <span class="service-node-title">Notification Service (RabbitMQ driven)</span>
+                <span class="service-node-db">Event Consumer</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- =============================================================
+           PAYROLL SANDBOX (LIVE CALCULATOR)
+           ============================================================= -->
+      <div id="tab-sandbox" class="tab-content active">
+        <!-- Live Classroom Presentation walkthrough console -->
+        <div class="glass-card" style="border-left: 4px solid var(--color-warning); background: rgba(210, 153, 34, 0.05);">
+          <h3 class="card-title" style="color: var(--color-warning);">
+            <i class="fa-solid fa-person-chalkboard"></i> Live Classroom Presentation Script & Demo Guide
+          </h3>
+          <p class="card-desc" style="color: var(--text-main); font-size: 0.95rem; line-height: 1.5;">
+            Use these pre-set demo triggers to run live tests in front of your class. They automatically populate the inputs and calculate outputs side-by-side, showcasing specific aspects of re-engineering:
+          </p>
+          <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-top: 12px;">
+            <button class="btn-slide" onclick="triggerPresentationDemo(1)" style="font-size: 0.85rem; border-color: rgba(88,166,255,0.4); background: rgba(88,166,255,0.05);">
+              <i class="fa-solid fa-calculator"></i> Step 1: Base PKR 45,000 (Slab 1 - 0% Tax)
+            </button>
+            <button class="btn-slide" onclick="triggerPresentationDemo(2)" style="font-size: 0.85rem; border-color: rgba(63,185,80,0.4); background: rgba(63,185,80,0.05);">
+              <i class="fa-solid fa-calculator"></i> Step 2: Base PKR 85,000 (Slab 2 - 5% Tax)
+            </button>
+            <button class="btn-slide" onclick="triggerPresentationDemo(3)" style="font-size: 0.85rem; border-color: var(--color-info); background: rgba(188,140,255,0.05);">
+              <i class="fa-solid fa-calculator"></i> Step 3: Base PKR 160,000 (Slab 4 - 15% Tax)
+            </button>
+            <button class="btn-slide" onclick="triggerPresentationDemo(4)" style="font-size: 0.85rem; border-color: var(--color-danger); background: rgba(248,81,73,0.05);">
+              <i class="fa-solid fa-triangle-exclamation"></i> Step 4: Legacy "Year Bleed" Overtime Bug
+            </button>
+          </div>
+        </div>
+
+        <!-- Range-Based Payroll Policy Reference Cards -->
+        <div class="grid-3" style="grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));">
+          <!-- Income Tax progressive slabs -->
+          <div class="glass-card" style="padding: 20px;">
+            <h4 class="card-title" style="font-size: 1rem; color: var(--color-primary);">
+              <i class="fa-solid fa-percent"></i> Progressive Income Tax Slabs (Re-Engineered Policy)
+            </h4>
+            <table style="width:100%; border-collapse:collapse; font-size:0.775rem; margin-top:8px;">
+              <thead>
+                <tr style="background:rgba(255,255,255,0.04);">
+                  <th style="border:1px solid var(--border-color); padding:6px;">Salary Range (PKR)</th>
+                  <th style="border:1px solid var(--border-color); padding:6px;">Tax Formula Applied</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td style="border:1px solid var(--border-color); padding:6px;">Up to 50,000</td><td style="border:1px solid var(--border-color); padding:6px; color: var(--color-success);">0% (Tax Exempt)</td></tr>
+                <tr><td style="border:1px solid var(--border-color); padding:6px;">50,001 to 100,000</td><td style="border:1px solid var(--border-color); padding:6px;">5% of amount exceeding 50,000</td></tr>
+                <tr><td style="border:1px solid var(--border-color); padding:6px;">100,001 to 150,000</td><td style="border:1px solid var(--border-color); padding:6px;">PKR 2,500 + 10% of amount exceeding 100,000</td></tr>
+                <tr><td style="border:1px solid var(--border-color); padding:6px;">Above 150,000</td><td style="border:1px solid var(--border-color); padding:6px;">PKR 7,500 + 15% of amount exceeding 150,000</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Range-Based Allowances -->
+          <div class="glass-card" style="padding: 20px;">
+            <h4 class="card-title" style="font-size: 1rem; color: var(--color-primary);">
+              <i class="fa-solid fa-hand-holding-dollar"></i> Range-Based Allowances Structure (Slab-Based)
+            </h4>
+            <table style="width:100%; border-collapse:collapse; font-size:0.775rem; margin-top:8px;">
+              <thead>
+                <tr style="background:rgba(255,255,255,0.04);">
+                  <th style="border:1px solid var(--border-color); padding:6px;">Basic Salary Slab (PKR)</th>
+                  <th style="border:1px solid var(--border-color); padding:6px;">House Rent %</th>
+                  <th style="border:1px solid var(--border-color); padding:6px;">Medical %</th>
+                  <th style="border:1px solid var(--border-color); padding:6px;">Transport Allow.</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td style="border:1px solid var(--border-color); padding:6px;">Up to 40,000</td><td style="border:1px solid var(--border-color); padding:6px;">30% of Basic</td><td style="border:1px solid var(--border-color); padding:6px;">10% of Basic</td><td style="border:1px solid var(--border-color); padding:6px;">PKR 3,000 (Flat)</td></tr>
+                <tr><td style="border:1px solid var(--border-color); padding:6px;">40,001 to 100,000</td><td style="border:1px solid var(--border-color); padding:6px;">25% of Basic</td><td style="border:1px solid var(--border-color); padding:6px;">12% of Basic</td><td style="border:1px solid var(--border-color); padding:6px;">PKR 5,000 (Flat)</td></tr>
+                <tr><td style="border:1px solid var(--border-color); padding:6px;">Above 100,000</td><td style="border:1px solid var(--border-color); padding:6px;">20% of Basic</td><td style="border:1px solid var(--border-color); padding:6px;">15% of Basic</td><td style="border:1px solid var(--border-color); padding:6px;">PKR 8,000 (Flat)</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Calculator Sandbox Layout -->
+        <div class="sandbox-layout">
+          <!-- Input Form Card -->
+          <div class="input-form-card">
+            <h3 class="card-title"><i class="fa-solid fa-sliders" style="color: var(--color-primary); margin-right: 8px;"></i> Parameters</h3>
+            
+            <div class="form-group">
+              <label class="form-label" for="calc-name">Employee Name</label>
+              <input type="text" id="calc-name" class="form-input" value="Jane Doe">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="calc-salary">Basic Salary (PKR)</label>
+              <input type="number" id="calc-salary" class="form-input" value="50000">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="calc-ot">Overtime Hours</label>
+              <input type="number" id="calc-ot" class="form-input" value="10">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="calc-loan">Loan Deduction (PKR)</label>
+              <input type="number" id="calc-loan" class="form-input" value="0">
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+              <div class="form-group">
+                <label class="form-label" for="calc-month">Month</label>
+                <select id="calc-month" class="form-input">
+                  <option value="6" selected>June (06)</option>
+                  <option value="12">December (12)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="calc-year">Year</label>
+                <select id="calc-year" class="form-input">
+                  <option value="2026" selected>2026</option>
+                  <option value="2025">2025</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="calc-strategy">Modern Tax Strategy</label>
+              <select id="calc-strategy" class="form-input">
+                <option value="progressive" selected>Progressive Bracket Slabs</option>
+                <option value="flat">Flat 10% (Legacy Rule)</option>
+              </select>
+            </div>
+
+            <div class="database-mock-indicator">
+              <i class="fa-solid fa-database"></i> <strong>Mock Database State:</strong><br>
+              Employee has a historical overtime log for <strong>June 2025</strong> containing <strong>15 overtime hours</strong> in the database.
+            </div>
+
+            <button class="btn-calculate" onclick="runPayrollSandbox()">
+              <i class="fa-solid fa-play"></i> Compute Payroll
+            </button>
+          </div>
+
+          <!-- Outputs Split Grid -->
+          <div class="simulation-outputs-grid">
+            <!-- Legacy Output -->
+            <div class="sim-card legacy">
+              <div class="sim-card-header">
+                <span class="sim-card-title">Legacy PHP Interpreter Output</span>
+                <span class="sim-badge danger">Vulnerable</span>
+              </div>
+              <div class="sim-card-body">
+                <div class="sim-log-panel" id="legacy-logs">
+                  <div class="log-entry warn">[PHP-Notice] session_start() initiated...</div>
+                  <div class="log-entry">[SQL] Connecting as root:admin123...</div>
+                  <div class="log-entry">[SQL] Connection succeeded.</div>
+                </div>
+
+                <div class="security-audit-alert" id="legacy-alert-box" style="display:none;">
+                  <strong>⚠️ Security & Integrity Alert:</strong><br>
+                  - **Year Bleed Bug Triggered:** Overtime sum included prior year records (June 2025), totaling 25 hours. Overpaid employee by 15 hours!<br>
+                  - **SQL Injection Risk:** Query constructed via string concatenation: `SELECT * FROM employees WHERE id = ` + input.
+                </div>
+
+                <div id="legacy-preview-container" style="display: none;">
+                  <span class="form-label" style="display:block; margin-bottom: 8px;">Inline Echo HTML Response</span>
+                  <div class="payslip-preview" id="legacy-payslip-html">
+                    <!-- HTML preview -->
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Modern Output -->
+            <div class="sim-card modern">
+              <div class="sim-card-header">
+                <span class="sim-card-title">Modernized TypeScript NestJS Output</span>
+                <span class="sim-badge success">Secure</span>
+              </div>
+              <div class="sim-card-body">
+                <div class="sim-log-panel" id="modern-logs">
+                  <div class="log-entry info">[Nest] Bootstrap PayrollService...</div>
+                  <div class="log-entry info">[TypeORM] Loaded entities successfully.</div>
+                </div>
+
+                <div class="security-audit-success" id="modern-alert-box" style="display:none;">
+                  <strong>✅ Security Audit Clean:</strong><br>
+                  - **Correct Year Filter:** Query extracted exact month & year parameters. Historical records correctly isolated.<br>
+                  - **SQL Injection Blocked:** Parameterized SQL used (`$1`, `$2`, `$3`). Input sanitized automatically by ORM repository.
+                </div>
+
+                <div id="modern-preview-container" style="display: none; display: flex; flex-direction: column; gap: 12px;">
+                  <span class="form-label">Returned JSON Entity Payload</span>
+                  <div class="json-code-block" id="modern-payroll-json">
+                    <!-- JSON output -->
+                  </div>
+                  <button class="btn-calculate" style="background:var(--color-success); font-size:0.85rem; padding:8px 12px; margin-top:5px; width:max-content;" id="btn-view-payslip" onclick="openPayslipModal()">
+                    <i class="fa-solid fa-file-invoice"></i> View Corporate Payslip
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Corporate Payslip Modal Window -->
+        <div id="payslip-modal" class="modal-overlay">
+          <div class="modal-card">
+            <div class="modal-header">
+              <h3 style="color: #111; font-weight:700;"><i class="fa-solid fa-file-invoice-dollar"></i> Corporate Payslip (Modernized Format)</h3>
+              <span class="modal-close" onclick="closePayslipModal()">&times;</span>
+            </div>
+            <div class="modal-body" id="printable-payslip-content">
+              <!-- Rendered Dynamically -->
+            </div>
+            <div class="modal-footer">
+              <button class="btn-slide" onclick="printPayslip()" style="background:#24292f; color:#fff; border:none; padding:8px 16px;">
+                <i class="fa-solid fa-print"></i> Print / Export PDF
+              </button>
+              <button class="btn-slide" onclick="closePayslipModal()" style="padding:8px 16px;">
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Modal overlay CSS -->
+        <style>
+          .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            backdrop-filter: blur(4px);
+          }
+          .modal-card {
+            background: #fff;
+            color: #333;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 650px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            animation: modalFadeIn 0.25s ease-out;
+          }
+          @keyframes modalFadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+          .modal-header {
+            padding: 16px 24px;
+            border-bottom: 1px solid #e1e4e8;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          }
+          .modal-close {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #888;
+            cursor: pointer;
+          }
+          .modal-close:hover { color: #333; }
+          .modal-body {
+            padding: 30px 40px;
+            overflow-y: auto;
+            max-height: 70vh;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+          }
+          .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid #e1e4e8;
+            background: #f6f8fa;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+          }
+          
+          /* Corporate Payslip styling */
+          .corp-payslip {
+            border: 2px solid #24292f;
+            padding: 24px;
+            background: #fff;
+            font-size: 0.85rem;
+            line-height: 1.4;
+          }
+          .corp-header {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 2px solid #24292f;
+            padding-bottom: 12px;
+            margin-bottom: 16px;
+          }
+          .corp-logo-section {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+          }
+          .corp-title {
+            font-size: 1.15rem;
+            font-weight: 800;
+            color: #24292f;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          }
+          .corp-subtitle {
+            font-size: 0.75rem;
+            color: #586069;
+            font-weight: 500;
+          }
+          .corp-meta-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 24px;
+          }
+          .corp-meta-item {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px solid #e1e4e8;
+            padding: 4px 0;
+          }
+          .corp-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 24px;
+          }
+          .corp-table th {
+            background: #24292f;
+            color: #fff;
+            padding: 6px 12px;
+            text-align: left;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+          }
+          .corp-table td {
+            border: 1px solid #e1e4e8;
+            padding: 8px 12px;
+          }
+          .corp-summary-box {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 16px;
+          }
+          .corp-summary-table {
+            width: 250px;
+          }
+          .corp-summary-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            font-weight: 600;
+          }
+          .corp-summary-row.net {
+            border-top: 2px solid #24292f;
+            font-size: 1rem;
+            color: #24292f;
+            font-weight: 800;
+          }
+        </style>
+      </div>
+
+      <!-- =============================================================
+           ACADEMIC REPORT TAB
+           ============================================================= -->
+      <div id="tab-report" class="tab-content">
+        <div class="report-layout">
+          <!-- Table of Contents sticky sidebar -->
+          <div class="report-sidebar-toc">
+            <span class="toc-title">Report Structure</span>
+            <ul class="toc-list">
+              <li class="toc-link active" onclick="scrollToReportSection('abstract')">Abstract</li>
+              <li class="toc-link" onclick="scrollToReportSection('intro')">1. Introduction</li>
+              <li class="toc-link" onclick="scrollToReportSection('literature')">2. Background & Literature</li>
+              <li class="toc-link" onclick="scrollToReportSection('system')">3. System Under Study</li>
+              <li class="toc-link" onclick="scrollToReportSection('methodology')">4. Methodology</li>
+              <li class="toc-link" onclick="scrollToReportSection('recovery')">5. Architecture Recovery</li>
+              <li class="toc-link" onclick="scrollToReportSection('smells')">6. Code Smell Analysis</li>
+              <li class="toc-link" onclick="scrollToReportSection('techniques')">7. Re-Engineering Applied</li>
+              <li class="toc-link" onclick="scrollToReportSection('modernization')">8. Proposed Target (To-Be)</li>
+              <li class="toc-link" onclick="scrollToReportSection('comparison')">9. Comparative Analysis</li>
+              <li class="toc-link" onclick="scrollToReportSection('conclusion')">10. Conclusion</li>
+              <li class="toc-link" onclick="scrollToReportSection('references')">11. References</li>
+            </ul>
+          </div>
+
+          <!-- Academic Markdown Content -->
+          <div class="report-content-body" id="report-text-container">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- =============================================================
+       DATA AND SCRIPTS SECTION
+       ============================================================= -->
+  <script>
+    /* -------------------------------------------------------------
+       SLIDE PRESENTATION DATA
+       ------------------------------------------------------------- */
+    const slidesData = [
+      {
+        header: "Slide 1 — Title Slide",
+        title: "Architecture Recovery & Model-Driven Re-Engineering",
+        content: `
+          <p style="font-size:1.35rem; font-weight:600; color:var(--text-bright); margin-bottom:16px;">A Case Study: Legacy PHP/MySQL Payroll Management System</p>
+          <p style="margin-bottom:8px;"><strong>Presenter:</strong> Rohail Rahmat | Roll No: 2023-KIU-BS4163</p>
+          <p style="margin-bottom:8px;"><strong>University:</strong> Karakorum International University, Gilgit</p>
+          <p style="margin-bottom:24px;"><strong>Supervisor:</strong> Instructor Asif Hussain</p>
+          <div style="padding:16px; border:1px solid var(--border-color); background:rgba(255,255,255,0.02); border-radius:8px;">
+            <p style="font-size:0.95rem; color:var(--color-primary);"><i class="fa-solid fa-award"></i> Software Re-Engineering course project submitted for academic evaluation.</p>
+          </div>
+        `,
+        notes: "Good day everyone. My name is Rohail Rahmat, roll number 2023-KIU-BS4163. Today I will present my semester project on software re-engineering. I selected a legacy payroll management system as my case study and applied a complete four-phase re-engineering methodology — from recovering the hidden architecture all the way to designing a modern cloud-native replacement. Let me walk you through what I found and what I propose."
+      },
+      {
+        header: "Slide 2 — The Problem",
+        title: "Why Legacy Systems Become a Crisis",
+        content: `
+          <ul style="margin-left: 20px; font-size:1.2rem; display:flex; flex-direction:column; gap:16px;">
+            <li>🔴 <strong>Obsolete Technology Stack:</strong> Built years ago, maintaining PHP 5.x monoliths is increasingly expensive and dangerous.</li>
+            <li>🔴 <strong>Core Business Dependency:</strong> Payroll systems process salaries; they cannot simply be switched off or rewritten without high risk.</li>
+            <li>🔴 <strong>Development Resistance:</strong> Accreted technical debt and lack of structure makes developers afraid to modify legacy code.</li>
+            <li>🔴 <strong>Silent Vulnerability Accumulation:</strong> Critical security loopholes like SQL injection go undetected for years.</li>
+          </ul>
+          <div class="slide-quote">
+            "Any information system that significantly resists modification and evolution."<br>
+            — Brodie & Stonebraker, 1995 (defining a legacy system)
+          </div>
+        `,
+        notes: "Legacy systems are not just old software — they are old software that the organization cannot live without. The payroll system I studied processes salaries every month. But it also contains critical security holes that could expose employee financial data. And because it has no architecture, every maintenance task risks breaking something else. This tension between business dependency and technical decay is exactly what re-engineering addresses."
+      },
+      {
+        header: "Slide 3 — System Under Study",
+        title: "The Legacy Monolith: Technical Profile",
+        content: `
+          <table style="width:100%; border-collapse:collapse; margin-top:10px; font-size:1rem;">
+            <thead>
+              <tr style="background:rgba(255,255,255,0.05);">
+                <th style="border:1px solid var(--border-color); padding:10px;">Property</th>
+                <th style="border:1px solid var(--border-color); padding:10px;">Details</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td style="border:1px solid var(--border-color); padding:10px;"><strong>Language</strong></td><td style="border:1px solid var(--border-color); padding:10px;">PHP 5.x — Procedural Paradigm</td></tr>
+              <tr><td style="border:1px solid var(--border-color); padding:10px;"><strong>Database</strong></td><td style="border:1px solid var(--border-color); padding:10px;">MySQL 5.x (Single Shared Connection)</td></tr>
+              <tr><td style="border:1px solid var(--border-color); padding:10px;"><strong>Frontend</strong></td><td style="border:1px solid var(--border-color); padding:10px;">HTML 4 + jQuery 1.x</td></tr>
+              <tr><td style="border:1px solid var(--border-color); padding:10px;"><strong>Architecture</strong></td><td style="border:1px solid var(--border-color); padding:10px;">Procedural Scripting (God File)</td></tr>
+              <tr><td style="border:1px solid var(--border-color); padding:10px;"><strong>Codebase Size</strong></td><td style="border:1px solid var(--border-color); padding:10px;">~8,000 Lines of Code</td></tr>
+              <tr><td style="border:1px solid var(--border-color); padding:10px;"><strong>Test Coverage</strong></td><td style="border:1px solid var(--border-color); padding:10px; color:var(--color-danger); font-weight:bold;">0%</td></tr>
+              <tr><td style="border:1px solid var(--border-color); padding:10px;"><strong>API Layer</strong></td><td style="border:1px solid var(--border-color); padding:10px; color:var(--color-danger); font-weight:bold;">None</td></tr>
+            </tbody>
+          </table>
+        `,
+        notes: "Here is the technical profile of the system. PHP 5.x, MySQL, HTML with jQuery. No tests, no API, no version control, and critical security vulnerabilities. It manages employee records, calculates salaries, handles leave — all essential business functions — yet it has zero test coverage. This means every deployment is a gamble. This is not an unusual situation. This is typical of legacy systems across industries."
+      },
+      {
+        header: "Slide 4 — Methodology",
+        title: "Structured Re-Engineering Methodology",
+        content: `
+          <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:16px; margin-top:20px;">
+            <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border-color); padding:16px; border-radius:8px; text-align:center;">
+              <span style="font-size:1.5rem; color:var(--color-primary); font-weight:bold;">PHASE 1</span>
+              <h4 style="margin:8px 0; color:var(--text-bright);">Architecture Recovery</h4>
+              <p style="font-size:0.8rem; color:var(--text-muted);">Static analysis, DB schema extraction, component dependency mapping.</p>
+            </div>
+            <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border-color); padding:16px; border-radius:8px; text-align:center;">
+              <span style="font-size:1.5rem; color:var(--color-warning); font-weight:bold;">PHASE 2</span>
+              <h4 style="margin:8px 0; color:var(--text-bright);">Problem ID</h4>
+              <p style="font-size:0.8rem; color:var(--text-muted);">Code smells documentation using Fowler's Taxonomy & security vulnerability audits.</p>
+            </div>
+            <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border-color); padding:16px; border-radius:8px; text-align:center;">
+              <span style="font-size:1.5rem; color:var(--color-success); font-weight:bold;">PHASE 3</span>
+              <h4 style="margin:8px 0; color:var(--text-bright);">Refactoring Mapping</h4>
+              <p style="font-size:0.8rem; color:var(--text-muted);">Mapping identified smells to proven refactoring techniques with before/after code blocks.</p>
+            </div>
+            <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border-color); padding:16px; border-radius:8px; text-align:center;">
+              <span style="font-size:1.5rem; color:var(--color-info); font-weight:bold;">PHASE 4</span>
+              <h4 style="margin:8px 0; color:var(--text-bright);">Modernization</h4>
+              <p style="font-size:0.8rem; color:var(--text-muted);">Designing the target microservices To-Be architecture and Strangler Fig roadmap.</p>
+            </div>
+          </div>
+        `,
+        notes: "I followed a structured four-phase methodology. Phase 1 is architecture recovery — I reverse engineered the system to understand what it actually does and how it is structured. Phase 2 is problem identification — I systematically catalogued every code smell and architectural violation. Phase 3 is re-engineering mapping — I matched each problem to a specific proven solution. Phase 4 is modernization design — I designed the complete target architecture. Each phase feeds the next."
+      },
+      {
+        header: "Slide 5 — Phase 1: What I Found",
+        title: "Architecture Recovery Findings",
+        content: `
+          <ul style="margin-left: 20px; font-size:1.2rem; display:flex; flex-direction:column; gap:16px;">
+            <li>❌ <strong>Zero Separations of Concerns:</strong> Presentation (HTML), data access (SQL queries), and payroll business logic are mixed inside single functions.</li>
+            <li>❌ <strong>Global State Coupling:</strong> All operations rely on a single global database connection variable <code>$conn</code> which is highly mutable.</li>
+            <li>❌ <strong>Invisible Boundaries:</strong> Features like Employee CRUD, Payslip generation, Leave approvals, and reporting reside in the same file.</li>
+            <li>❌ <strong>No API Layer:</strong> All actions occur via HTML page routing with no REST endpoints, preventing external integrations or mobile support.</li>
+          </ul>
+        `,
+        notes: "When I recovered the architecture, the most striking finding was simple: there is no architecture. Despite having recognizable functions — employee management, payroll, leave, reports — none of these exist as separate modules with defined boundaries. Everything is in one PHP file, 2,000 lines long, with every function able to call every other function directly. The architecture diagram you are about to see shows this."
+      },
+      {
+        header: "Slide 6 — The As-Is Architecture",
+        title: "Recovered Monolithic Architecture Diagram",
+        content: `
+          <div style="display:flex; justify-content:center; align-items:center; padding:20px; border:1px solid var(--border-color); background:rgba(0,0,0,0.2); border-radius:12px; margin-top:10px;">
+            <div style="text-align:center; padding:20px; border:2px solid var(--color-danger); border-radius:8px; background:rgba(248,81,73,0.05); width:400px;">
+              <h3 style="color:var(--text-bright); margin-bottom:12px;"><i class="fa-solid fa-file-code"></i> payroll.php (2,000+ lines)</h3>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px;">
+                <div style="background:rgba(255,255,255,0.05); padding:8px; border-radius:4px; font-size:0.85rem;">Employee CRUD</div>
+                <div style="background:rgba(255,255,255,0.05); padding:8px; border-radius:4px; font-size:0.85rem;">calculate_salary()</div>
+                <div style="background:rgba(255,255,255,0.05); padding:8px; border-radius:4px; font-size:0.85rem;">applyLeave()</div>
+                <div style="background:rgba(255,255,255,0.05); padding:8px; border-radius:4px; font-size:0.85rem;">Reports & HTML</div>
+              </div>
+              <div style="border-top:1px dashed var(--border-color); padding-top:10px; font-family:var(--font-mono); font-size:0.8rem; color:var(--color-warning);">
+                Global Connection: $conn
+              </div>
+            </div>
+          </div>
+          <p style="text-align:center; font-size:0.9rem; color:var(--text-muted); margin-top:8px;">Highly coupled monolithic structure leading to massive maintenance costs and risk.</p>
+        `,
+        notes: "This is the recovered architecture. One file containing everything. The arrows represent direct coupling — the payroll module directly calls employee functions, leave functions call payroll functions, all of them share one global database connection. A bug in leave management can corrupt payroll. A database error anywhere brings down everything. This is what technical debt looks like architecturally."
+      },
+      {
+        header: "Slide 7 — Code Smell Analysis",
+        title: "Six Code Smells and Architectural Violations",
+        content: `
+          <table style="width:100%; border-collapse:collapse; font-size:0.95rem;">
+            <thead>
+              <tr style="background:rgba(255,255,255,0.05);">
+                <th style="border:1px solid var(--border-color); padding:8px;">Smell</th>
+                <th style="border:1px solid var(--border-color); padding:8px;">Severity</th>
+                <th style="border:1px solid var(--border-color); padding:8px;">Impact</th>
+                <th style="border:1px solid var(--border-color); padding:8px;">Fowler Remedy</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td style="border:1px solid var(--border-color); padding:8px;"><strong>1. God File</strong></td><td style="border:1px solid var(--border-color); padding:8px; color:var(--color-danger);">🔴 Critical</td><td style="border:1px solid var(--border-color); padding:8px;">Tangled logic dependencies</td><td style="border:1px solid var(--border-color); padding:8px;">Extract Class</td></tr>
+              <tr><td style="border:1px solid var(--border-color); padding:8px;"><strong>2. SQL Injection</strong></td><td style="border:1px solid var(--border-color); padding:8px; color:var(--color-danger);">🔴 Critical</td><td style="border:1px solid var(--border-color); padding:8px;">Database compromise risk</td><td style="border:1px solid var(--border-color); padding:8px;">Repository Pattern / ORM</td></tr>
+              <tr><td style="border:1px solid var(--border-color); padding:8px;"><strong>3. Duplicate Code</strong></td><td style="border:1px solid var(--border-color); padding:8px; color:var(--color-warning);">🟠 High</td><td style="border:1px solid var(--border-color); padding:8px;">Inconsistent rules enforcement</td><td style="border:1px solid var(--border-color); padding:8px;">Extract Method / Middleware</td></tr>
+              <tr><td style="border:1px solid var(--border-color); padding:8px;"><strong>4. Shotgun Surgery</strong></td><td style="border:1px solid var(--border-color); padding:8px; color:var(--color-warning);">🟠 High</td><td style="border:1px solid var(--border-color); padding:8px;">Multi-file updates for single rule</td><td style="border:1px solid var(--border-color); padding:8px;">Centralized Config Service</td></tr>
+              <tr><td style="border:1px solid var(--border-color); padding:8px;"><strong>5. Hardcoded Credentials</strong></td><td style="border:1px solid var(--border-color); padding:8px; color:var(--color-warning);">🟠 High</td><td style="border:1px solid var(--border-color); padding:8px;">Exposed system passwords</td><td style="border:1px solid var(--border-color); padding:8px;">Environment Configuration</td></tr>
+              <tr><td style="border:1px solid var(--border-color); padding:8px;"><strong>6. Long Method</strong></td><td style="border:1px solid var(--border-color); padding:8px; color:var(--color-warning);">🟠 High</td><td style="border:1px solid var(--border-color); padding:8px;">Untestable 400-line function</td><td style="border:1px solid var(--border-color); padding:8px;">Decompose Method</td></tr>
+            </tbody>
+          </table>
+        `,
+        notes: "Using Fowler's code smell taxonomy from his 1999 book Refactoring, I identified six major problems. Two are critical severity — the God File where one file does everything, and SQL Injection where an attacker can destroy the entire database. The remaining four are high severity and together create a system that is nearly impossible to maintain safely. Let me show you the most dangerous one."
+      },
+      {
+        header: "Slide 8 — The Critical Vulnerability",
+        title: "SQL Injection: Threat Analysis",
+        content: `
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; font-size:0.9rem; margin-top:10px;">
+            <div style="background:rgba(248,81,73,0.05); border:1px solid var(--color-danger); padding:16px; border-radius:8px;">
+              <h4 style="color:var(--color-danger); margin-bottom:8px;"><i class="fa-solid fa-triangle-exclamation"></i> Vulnerable Legacy Concatenation:</h4>
+              <pre style="background:#0d1117; padding:10px; border-radius:4px; font-family:var(--font-mono); color:#ff7b72; font-size:0.75rem;">
+$id = $_GET['employee_id'];
+$query = "SELECT * FROM employees WHERE id = " . $id;
+$result = mysqli_query($conn, $query);</pre>
+              <p style="margin-top:8px; color:var(--text-muted);">Attacker payload: <code>1; DROP TABLE employees; --</code> destroys all employee data instantly.</p>
+            </div>
+            <div style="background:rgba(63,185,80,0.05); border:1px solid var(--color-success); padding:16px; border-radius:8px;">
+              <h4 style="color:var(--color-success); margin-bottom:8px;"><i class="fa-solid fa-circle-check"></i> Secure Refactored Parameterization:</h4>
+              <pre style="background:#0d1117; padding:10px; border-radius:4px; font-family:var(--font-mono); color:#7ee787; font-size:0.75rem;">
+async findEmployeeById(id: number): Promise&lt;Employee&gt; {
+  return this.employeeRepository.findOneOrFail({
+    where: { id }
+  });
+}</pre>
+              <p style="margin-top:8px; color:var(--text-muted);">TypeORM generates parameterized queries. Input arguments never touch the raw SQL statement.</p>
+            </div>
+          </div>
+        `,
+        notes: "This is the most alarming finding. The system builds SQL queries by joining user input directly into the query string. An attacker does not need to hack anything — they type a malicious value in the browser URL bar. The system willingly executes whatever they provide. The fix requires changing exactly two lines of code using a parameterized query. That two-line fix completely eliminates this entire class of vulnerability. The fact that this exists in a production payroll system is a serious risk."
+      },
+      {
+        header: "Slide 8A — Legacy Calculation Logic Bug",
+        title: "Logic Flaw: The 'Year Bleed' Bug",
+        content: `
+          <ul style="margin-left: 20px; font-size:1.15rem; display:flex; flex-direction:column; gap:12px;">
+            <li>❌ <strong>The Query Bug:</strong> Legacy code filters overtime hours only by month (e.g. <code>MONTH(date) = 6</code>), completely omitting the target year check.</li>
+            <li>⚠️ <strong>Compound Payment Error:</strong> If an employee logs overtime in June 2024, June 2025, and June 2026, calculations for June 2026 sum all three years!</li>
+            <li>🔴 <strong>Financial Loss:</strong> Generates silent, compounding payroll inflation as historical logs grow.</li>
+            <li>✅ <strong>TypeScript Fix:</strong> Queries target both month and year explicitly via parameterized database queries.</li>
+          </ul>
+        `,
+        notes: "Beyond standard code smells and security vulnerabilities, my recovery analysis uncovered a severe logical bug embedded in the legacy payroll calculation. When summing overtime hours, the legacy code filters by month but completely ignores the year. In a production environment spanning multiple years, an employee calculating salary for June 2026 would automatically have their overtime hours from June 2025 and 2024 added as well. This causes silent, compounding financial losses. Our refactored TypeScript code solves this by explicitly extracting and matching both the month and the year."
+      },
+      {
+        header: "Slide 9 — Re-Engineering Mapping",
+        title: "Mapping Technical Debt to Fowler Remedies",
+        content: `
+          <table style="width:100%; border-collapse:collapse; margin-top:10px; font-size:0.95rem;">
+            <thead>
+              <tr style="background:rgba(255,255,255,0.05);">
+                <th style="border:1px solid var(--border-color); padding:10px;">Identified Smell</th>
+                <th style="border:1px solid var(--border-color); padding:10px;">Refactoring Remedy</th>
+                <th style="border:1px solid var(--border-color); padding:10px;">Target Architecture Outcome</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td style="border:1px solid var(--border-color); padding:10px;"><strong>God File</strong></td><td style="border:1px solid var(--border-color); padding:10px;">Extract Class</td><td style="border:1px solid var(--border-color); padding:10px;">5 dedicated domain services</td></tr>
+              <tr><td style="border:1px solid var(--border-color); padding:10px;"><strong>SQL Injection</strong></td><td style="border:1px solid var(--border-color); padding:10px;">Repository Pattern + ORM</td><td style="border:1px solid var(--border-color); padding:10px;">Parameterized queries via TypeORM</td></tr>
+              <tr><td style="border:1px solid var(--border-color); padding:10px;"><strong>Duplicate Auth</strong></td><td style="border:1px solid var(--border-color); padding:10px;">Extract Middleware</td><td style="border:1px solid var(--border-color); padding:10px;">Centralized NestJS Guards & Decorators</td></tr>
+              <tr><td style="border:1px solid var(--border-color); padding:10px;"><strong>Long Method</strong></td><td style="border:1px solid var(--border-color); padding:10px;">Decompose Method</td><td style="border:1px solid var(--border-color); padding:10px;">Large calculation decomposed into 6 sub-methods</td></tr>
+              <tr><td style="border:1px solid var(--border-color); padding:10px;"><strong>Hardcoded Rates</strong></td><td style="border:1px solid var(--border-color); padding:10px;">Move Method + Strategy</td><td style="border:1px solid var(--border-color); padding:10px;">Tax rate strategies isolated as pluggable algorithms</td></tr>
+            </tbody>
+          </table>
+        `,
+        notes: "For every problem I identified, I applied a specific named technique from Fowler's refactoring catalog. These are not my inventions — they are proven, peer-validated solutions with decades of industry use. What I demonstrated is that re-engineering is a science, not guesswork. You identify the smell, you look up the technique, you apply it. The before-and-after code for each of these transformations is documented in the repository."
+      },
+      {
+        header: "Slide 10 — Proposed Target Architecture",
+        title: "Proposed Microservices Topology",
+        content: `
+          <ul style="margin-left: 20px; font-size:1.15rem; display:flex; flex-direction:column; gap:10px; margin-bottom:15px;">
+            <li>🛡️ <strong>API Gateway:</strong> Single entry point handles JWT Validation, Rate Limiting, and Routing.</li>
+            <li>📦 <strong>Decoupled Microservices:</strong> Employee Service, Payroll Service, Leave Service, and Report Service.</li>
+            <li>💽 <strong>Database Per Service:</strong> Individual PostgreSQL instances eliminate shared mutable database states.</li>
+            <li>✉️ <strong>Message-Driven Integration:</strong> RabbitMQ broadcasts event notifications asynchronously (e.g. <code>payroll.processed</code>).</li>
+          </ul>
+          <div style="background:rgba(255,255,255,0.02); border:1px solid var(--border-color); padding:12px; border-radius:6px; font-family:var(--font-mono); font-size:0.85rem; text-align:center;">
+            React.js Frontend &rarr; API Gateway (Nginx) &rarr; Domain Microservices (TypeScript)
+          </div>
+        `,
+        notes: "The proposed To-Be architecture decomposes the monolith into five independent microservices. An API Gateway handles all security at the single entry point — authentication, rate limiting, HTTPS. Each service has its own dedicated database, so a failure or data corruption in one service cannot affect any other. RabbitMQ handles asynchronous communication so that when payroll is processed, the notification service automatically emails payslips without the payroll service needing to know anything about email."
+      },
+      {
+        header: "Slide 11 — Migration Strategy",
+        title: "Roadmap: 28-Week Strangler Fig Pattern",
+        content: `
+          <div style="display:flex; flex-direction:column; gap:12px; font-size:1rem; margin-top:10px;">
+            <div style="display:flex; align-items:center; gap:16px;">
+              <span style="background:var(--color-primary); color:#000; font-weight:bold; padding:4px 10px; border-radius:4px; width:100px; text-align:center;">Weeks 1-4</span>
+              <span><strong>Cloud Infrastructure Foundation:</strong> Set up PostgreSQL databases, Docker configurations, and Nginx Gateway.</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:16px;">
+              <span style="background:var(--color-primary); color:#000; font-weight:bold; padding:4px 10px; border-radius:4px; width:100px; text-align:center;">Weeks 5-10</span>
+              <span><strong>Employee Service Extraction:</strong> Build employee domain API, migrate database schemas, and deploy gateway routing.</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:16px;">
+              <span style="background:var(--color-primary); color:#000; font-weight:bold; padding:4px 10px; border-radius:4px; width:100px; text-align:center;">Weeks 11-18</span>
+              <span><strong>Payroll & Leave Modules:</strong> Build services, connect with RabbitMQ, and route traffic from legacy app.</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:16px;">
+              <span style="background:var(--color-primary); color:#000; font-weight:bold; padding:4px 10px; border-radius:4px; width:100px; text-align:center;">Weeks 19-28</span>
+              <span><strong>Frontend & Decommissioning:</strong> Launch React frontend, run parallel validation, and turn off legacy PHP.</span>
+            </div>
+          </div>
+        `,
+        notes: "The Strangler Fig Pattern is named after a vine that grows around a tree, gradually replacing it while the tree continues to stand. We never switch off the legacy system during migration. Over 28 weeks, we replace one component at a time. Employees continue to receive their salaries throughout. The legacy PHP system only stops when every feature has been fully migrated, tested, and validated in the new system. This is the responsible approach — it eliminates the biggest risk in modernization."
+      },
+      {
+        header: "Slide 12 — Complete Transformation",
+        title: "As-Is Monolith vs. To-Be Microservices",
+        content: `
+          <table style="width:100%; border-collapse:collapse; font-size:0.9rem; margin-top:10px;">
+            <thead>
+              <tr style="background:rgba(255,255,255,0.05);">
+                <th style="border:1px solid var(--border-color); padding:8px;">Metric</th>
+                <th style="border:1px solid var(--border-color); padding:8px; color:var(--color-danger);">Legacy Monolith</th>
+                <th style="border:1px solid var(--border-color); padding:8px; color:var(--color-success);">Modernized Target</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td style="border:1px solid var(--border-color); padding:8px;"><strong>Core Paradigm</strong></td><td style="border:1px solid var(--border-color); padding:8px;">Procedural PHP 5.x</td><td style="border:1px solid var(--border-color); padding:8px;">TypeScript / NestJS Node.js</td></tr>
+              <tr><td style="border:1px solid var(--border-color); padding:8px;"><strong>Database</strong></td><td style="border:1px solid var(--border-color); padding:8px;">Single MySQL (highly coupled)</td><td style="border:1px solid var(--border-color); padding:8px;">PostgreSQL (isolated schema per service)</td></tr>
+              <tr><td style="border:1px solid var(--border-color); padding:8px;"><strong>API Integration</strong></td><td style="border:1px solid var(--border-color); padding:8px;">None (HTML page echo)</td><td style="border:1px solid var(--border-color); padding:8px;">REST API Gateway + Swagger docs</td></tr>
+              <tr><td style="border:1px solid var(--border-color); padding:8px;"><strong>Testing</strong></td><td style="border:1px solid var(--border-color); padding:8px; color:var(--color-danger); font-weight:bold;">0% Coverage</td><td style="border:1px solid var(--border-color); padding:8px; color:var(--color-success); font-weight:bold;">>80% Target Coverage (Jest)</td></tr>
+              <tr><td style="border:1px solid var(--border-color); padding:8px;"><strong>Deployment</strong></td><td style="border:1px solid var(--border-color); padding:8px;">Manual FTP overwrite</td><td style="border:1px solid var(--border-color); padding:8px;">CI/CD Dockerized Containers</td></tr>
+            </tbody>
+          </table>
+        `,
+        notes: "Every dimension improves. Security goes from critical vulnerabilities to industry standard. Deployment goes from manual FTP to fully automated. Testing goes from zero to comprehensive. The system gains a complete API that makes mobile apps and third-party integration possible. And critically, availability goes from a single point of failure — if this one PHP file has a bug, nobody gets paid — to 99.9% uptime through Kubernetes health management and automatic restarts."
+      },
+      {
+        header: "Slide 13 — Key Learnings",
+        title: "Lessons in Software Re-Engineering",
+        content: `
+          <ul style="margin-left: 20px; font-size:1.2rem; display:flex; flex-direction:column; gap:16px;">
+            <li>💡 <strong>Recover before you restructure:</strong> You cannot fix what you have not recovered and mapped in the As-Is architecture.</li>
+            <li>💡 <strong>Smells are symptoms, not the root cause:</strong> Architectural rot stems from lack of discipline and governance from Day 1.</li>
+            <li>💡 <strong>Incremental migration beats rewrite:</strong> The Strangler Fig Pattern limits organizational risk by keeping legacy functions alive during target system builds.</li>
+            <li>💡 <strong>Re-engineering is a science:</strong> Utilizing Fowler's catalog and industry guidelines provides predictable, verifiable results.</li>
+          </ul>
+        `,
+        notes: "These four learnings are the most transferable lessons from this project. The one that surprised me most was the third. Before this project I might have said: just rewrite everything from scratch. But a big rewrite is the highest-risk move in software engineering — you must perfectly replicate the behavior of a system you are simultaneously trying to replace. The Strangler Fig Pattern achieves the same outcome with a fraction of the risk. This is why experienced engineers choose it."
+      },
+      {
+        header: "Slide 14 — Summary",
+        title: "Project Accomplishments Summary",
+        content: `
+          <div style="background:rgba(88,166,255,0.05); border:1px solid var(--border-color); border-radius:8px; padding:20px; font-size:1.1rem; line-height:1.6; margin-top:10px;">
+            <p style="margin-bottom:12px;">✅ <strong>Baselines Recovered:</strong> Documented monolithic code vulnerabilities and global variables in <code>payroll.php</code>.</p>
+            <p style="margin-bottom:12px;">✅ <strong>Refactoring Models Built:</strong> Designed side-by-side comparative refactoring models using clean TypeScript.</p>
+            <p style="margin-bottom:12px;">✅ <strong>Target Topologies Designed:</strong> Crafted microservice diagrams, Gateway configurations, and Strangler Fig week roadmaps.</p>
+            <p>✅ <strong>Academic Report Published:</strong> Fully articulated Software Re-Engineering report made available for course grading.</p>
+          </div>
+        `,
+        notes: "In conclusion: this project applied a complete, structured re-engineering lifecycle to a real production legacy system. I recovered an architecture that did not exist in any document. I identified every major problem using established taxonomies. I mapped each problem to a proven solution. And I designed a practical modernization path that minimizes risk. The complete repository is publicly available on GitHub with all artifacts organized for review."
+      },
+      {
+        header: "Slide 15 — Thank You",
+        title: "Thank You! Questions & Discussion",
+        content: `
+          <p style="font-size:1.25rem; margin-bottom:24px; color:var(--text-bright);">Your feedback, questions, and evaluations are welcome.</p>
+          <div style="display:flex; flex-direction:column; gap:8px; font-size:1.05rem;">
+            <span>🌐 <strong>Public Project Repository:</strong></span>
+            <a href="https://github.com/rohailrahmat/legacy-payroll-reengineering" target="_blank" style="font-family:var(--font-mono); font-size:1.1rem;">https://github.com/rohailrahmat/legacy-payroll-reengineering</a>
+          </div>
+          <p style="margin-top:32px; color:var(--text-muted); font-size:0.9rem;">Presenter: Rohail Rahmat | Roll No: 2023-KIU-BS4163 | Karakorum International University, Gilgit</p>
+        `,
+        notes: "I want to thank my supervisor Instructor Asif Hussain and my peers. The repository contains all files, reports, and code blocks for review. Thank you very much, I am ready for any questions you might have."
+      }
+    ];
+
+    /* -------------------------------------------------------------
+       CODE SMELLS COMPARISON DATA
+       ------------------------------------------------------------- */
+    const smellsData = {
+      1: {
+        severity: "Critical Severity",
+        severityClass: "critical",
+        remedy: "Refactoring: Extract Class",
+        location: "Location: payroll.php (2,000+ lines)",
+        desc: "The entire payroll database accesses, calculations, leave logging, and HTML payslip echoing reside in a single god script file. This violates the Single Responsibility Principle, making the codebase highly coupled and extremely hard to maintain safely.",
+        legacyFile: "payroll.php",
+        refactoredFile: "PayrollService.ts",
+        legacyCode: `// payroll.php — contains ALL modules in one file
+<span class="highlight-line-del">function getEmployee() { ... }          // Employee Module</span>
+<span class="highlight-line-del">function getAllEmployees() { ... }       // Employee Module</span>
+<span class="highlight-line-del">function addEmployee() { ... }          // Employee Module</span>
+<span class="highlight-line-del">function calculate_salary() { ... }     // Payroll Module (400 LOC)</span>
+<span class="highlight-line-del">function applyLeave() { ... }           // Leave Module</span>
+<span class="highlight-line-del">function approveLeave() { ... }         // Leave Module</span>
+<span class="highlight-line-del">function generatePayrollReport() { ... } // Reports Module</span>
+<span class="highlight-line-del">function checkAuth() { ... }            // Auth Module</span>`,
+        refactoredCode: `// Extracted into multiple specialized, cohesive files:
+<span class="highlight-line-add">├── EmployeeService.ts      (Handles employee database CRUD)</span>
+<span class="highlight-line-add">├── PayrollService.ts       (Handles payroll calculations)</span>
+<span class="highlight-line-add">├── LeaveService.ts         (Handles leave registration)</span>
+<span class="highlight-line-add">├── ReportService.ts        (Handles reporting exports)</span>
+<span class="highlight-line-add">└── AuthMiddleware.ts       (Centralized route security guard)</span>`
+      },
+      2: {
+        severity: "Critical Severity",
+        severityClass: "critical",
+        remedy: "Refactoring: Repository Pattern + Prepared Statements",
+        location: "Location: getEmployee() & getAllEmployees()",
+        desc: "User inputs from global $_GET and $_POST parameters are directly concatenated into raw SQL strings without sanitization. An attacker could exploit this to fetch sensitive data, bypass logins, or run DROP TABLE statements to wipe the database.",
+        legacyFile: "payroll.php",
+        refactoredFile: "PayrollService.ts",
+        legacyCode: `function getEmployee() {
+    global $conn;
+<span class="highlight-line-del">    $id = $_GET['employee_id'];   // Raw user input concatenated</span>
+<span class="highlight-line-del">    $query = "SELECT * FROM employees WHERE id = " . $id;</span>
+<span class="highlight-line-del">    $result = mysqli_query($conn, $query);</span>
+    return mysqli_fetch_assoc($result);
+}`,
+        refactoredCode: `// TypeORM handles parameterization automatically
+<span class="highlight-line-add">async findEmployeeById(id: number): Promise&lt;Employee&gt; {</span>
+<span class="highlight-line-add">    return this.employeeRepository.findOneOrFail({</span>
+<span class="highlight-line-add">        where: { id } // Safe: parameters are bound separately</span>
+<span class="highlight-line-add">    });</span>
+<span class="highlight-line-add">}</span>`
+      },
+      3: {
+        severity: "High Severity",
+        severityClass: "high",
+        remedy: "Refactoring: Extract Method + Route Middleware Decorators",
+        location: "Location: Called in 15+ functions",
+        desc: "Authentication logic checking session parameters is copy-pasted across every operation script. If the authentication method shifts, the developer has to modify multiple independent scripts, leading to insecure gaps if one is forgotten.",
+        legacyFile: "payroll.php",
+        refactoredFile: "PayrollService.ts",
+        legacyCode: `<span class="highlight-line-del">function checkAuth() {</span>
+<span class="highlight-line-del">    if (!isset($_SESSION['user_id'])) {</span>
+<span class="highlight-line-del">        header("Location: login.php");</span>
+<span class="highlight-line-del">        exit();</span>
+<span class="highlight-line-del">    }</span>
+<span class="highlight-line-del">}</span>
+// Repeatedly copy-pasted inside every business function`,
+        refactoredCode: `// Modern Centralized NestJS Route Guard Decorator
+<span class="highlight-line-add">@UseGuards(JwtAuthGuard)</span>
+<span class="highlight-line-add">@Get('employees/:id')</span>
+<span class="highlight-line-add">async getEmployee(@Param('id') id: number) {</span>
+<span class="highlight-line-add">    return this.payrollService.findEmployeeById(id);</span>
+<span class="highlight-line-add">}</span>`
+      },
+      4: {
+        severity: "High Severity",
+        severityClass: "high",
+        remedy: "Refactoring: Move Method + ConfigService Injection",
+        location: "Location: payroll.php, tax_report.php, payslip.php",
+        desc: "Business rules and constant values (like tax rate 10%, provident fund rate 12%, overtime multiplier 1.5) are hardcoded as raw numbers inside multiple independent script files. A shift in federal budget taxes triggers Shotgun Surgery, requiring edits across several files.",
+        legacyFile: "payroll.php",
+        refactoredFile: "PayrollService.ts",
+        legacyCode: `// In calculate_salary() function:
+<span class="highlight-line-del">$tax_rate = 0.10;           // Hardcoded literal</span>
+$income_tax = $base_salary * $tax_rate;
+$provident_fund = $base_salary * 0.12;
+
+// In tax_report.php:
+<span class="highlight-line-del">$tax_rate = 0.10;           // Hardcoded literal duplicate</span>`,
+        refactoredCode: `// Configuration injected dynamically from single environment configuration:
+<span class="highlight-line-add">const pfRate = this.configService.get&lt;number&gt;('PF_RATE', 0.12);</span>
+<span class="highlight-line-add">const providentFund = employee.baseSalary * pfRate;</span>
+<span class="highlight-line-add">const incomeTax = this.taxStrategy.calculate(employee.baseSalary);</span>`
+      },
+      5: {
+        severity: "High Severity",
+        severityClass: "high",
+        remedy: "Refactoring: Externalize Configuration via .env Files",
+        location: "Location: payroll.php lines 20-23",
+        desc: "Sensitive passwords and host configurations for production database connection endpoints are saved in clear plaintext inside version-controlled files. This exposes production databases to anyone viewing the repository.",
+        legacyFile: "payroll.php",
+        refactoredFile: ".env",
+        legacyCode: `<span class="highlight-line-del">$db_host = "localhost";</span>
+<span class="highlight-line-del">$db_user = "root";</span>
+<span class="highlight-line-del">$db_pass = "admin123";          // Hardcoded plain secret password</span>
+<span class="highlight-line-del">$db_name = "payroll_system";</span>`,
+        refactoredCode: `// Externalized Environment Settings (.gitignore prevents committing .env)
+<span class="highlight-line-add">DATABASE_URL=postgresql://payroll_user:SecurePass123@db:5432/payroll</span>
+<span class="highlight-line-add">JWT_SECRET=super-secret-jwt-key-256-bits</span>
+<span class="highlight-line-add">TAX_RATE=0.10</span>`
+      },
+      6: {
+        severity: "High Severity",
+        severityClass: "high",
+        remedy: "Refactoring: Decompose Method",
+        location: "Location: calculate_salary() function",
+        desc: "The salary calculation method spans 400+ lines doing database queries, overtime parsing, provident fund math, tax computations, record saving, and inline HTML output string generation. Testing any part requires launching the whole code block and databases.",
+        legacyFile: "payroll.php",
+        refactoredFile: "PayrollService.ts",
+        legacyCode: `function calculate_salary($employee_id, $month, $year) {
+<span class="highlight-line-del">    // 400 lines mixing SQL, calculations, HTML echos:</span>
+<span class="highlight-line-del">    $base_salary = $employee['salary'];</span>
+<span class="highlight-line-del">    $transport_allowance = 2000;</span>
+<span class="highlight-line-del">    $net_salary = $gross_salary - $income_tax - $provident_fund;</span>
+<span class="highlight-line-del">    $payslip_html = "<html><h1>PAYSLIP</h1>...</html>";</span>
+<span class="highlight-line-del">    return ['net_salary' => $net_salary, 'payslip_html' => $payslip_html];</span>
+}`,
+        refactoredCode: `// Main calculation method acts as clear orchestrator of decomposed logic:
+<span class="highlight-line-add">async calculateSalary(employeeId: number, month: number, year: number) {</span>
+<span class="highlight-line-add">    const employee = await this.findEmployeeById(employeeId);</span>
+<span class="highlight-line-add">    const grossSalary = await this.calculateGrossSalary(employee, month, year);</span>
+<span class="highlight-line-add">    const deductions = await this.calculateDeductions(employee, month);</span>
+<span class="highlight-line-add">    const netSalary = grossSalary - deductions.total;</span>
+<span class="highlight-line-add">    return this.savePayrollRecord({ ... });</span>
+<span class="highlight-line-add">}</span>`
+      },
+      7: {
+        severity: "High Severity",
+        severityClass: "high",
+        remedy: "Bug Fix: Explicit Month and Year Query Binding",
+        location: "Location: Overtime computation query (payroll.php line 112)",
+        desc: "A severe logical calculation bug is embedded inside the overtime query. When calculating monthly overtime hours, the legacy SQL query filters only on the month, completely omitting the year. Overtime from the same month of prior years accumulates in payroll payments.",
+        legacyFile: "payroll.php",
+        refactoredFile: "PayrollService.ts",
+        legacyCode: `// Legacy bug: MONTH(date) query sums June 2025 + June 2026 overtime hours!
+<span class="highlight-line-del">$query3 = "SELECT SUM(overtime_hours) as total FROM overtime</span>
+<span class="highlight-line-del">           WHERE employee_id = " . $employee_id . "</span>
+<span class="highlight-line-del">           AND MONTH(date) = " . $month; // missing: YEAR(date) = $year</span>`,
+        refactoredCode: `// Correctly filters on BOTH target month and target year:
+<span class="highlight-line-add">const result = await this.payrollRepository.query(</span>
+<span class="highlight-line-add">  \`SELECT COALESCE(SUM(overtime_hours), 0) as total</span>
+<span class="highlight-line-add">   FROM overtime</span>
+<span class="highlight-line-add">   WHERE employee_id = $1</span>
+<span class="highlight-line-add">     AND EXTRACT(MONTH FROM date) = $2</span>
+<span class="highlight-line-add">     AND EXTRACT(YEAR FROM date) = $3\`,</span>
+<span class="highlight-line-add">  [employeeId, month, year]</span>
+<span class="highlight-line-add">);</span>`
+      }
+    };
+
+    /* -------------------------------------------------------------
+       STRANGLER FIG TIMELINE MIGRATION MAP
+       ------------------------------------------------------------- */
+    const stranglerWeeks = {
+      0: {
+        desc: "<strong>Week 0: Legacy Baseline</strong>. The entire application runs inside the monolithic PHP codebase. Direct database coupling between all functional models. No gateway configuration.",
+        gatewayActive: false,
+        strangled: [],
+        modernActive: []
+      },
+      4: {
+        desc: "<strong>Week 1-4: Foundation Phase</strong>. We deploy Nginx API Gateway routing. A new modernized PostgreSQL database schema cluster is provisioned alongside the legacy MySQL server. Modern containers are built but receive no live payroll routing yet.",
+        gatewayActive: true,
+        strangled: [],
+        modernActive: []
+      },
+      10: {
+        desc: "<strong>Week 5-10: Employee Service Extraction</strong>. The Employee CRUD module is completely extracted from the monolith. All requests targeting <code>/api/employees</code> are routed by Nginx directly to the new Node.js Employee Service. The legacy monolith continues handling payroll, leaves, and reports.",
+        gatewayActive: true,
+        strangled: ["emp"],
+        modernActive: ["emp"]
+      },
+      18: {
+        desc: "<strong>Week 11-18: Core Service Migrations</strong>. We build and extract the TypeScript Payroll Service and Leave Service. RabbitMQ messaging setup routes asynchronous event triggers. Requests for payroll and leaves migrate to the modern zone. Only reports remain inside the old code.",
+        gatewayActive: true,
+        strangled: ["emp", "pay", "leave"],
+        modernActive: ["emp", "pay", "leave", "notif"]
+      },
+      24: {
+        desc: "<strong>Week 19-24: Frontend Transition & UAT</strong>. The new React.js web application is launched, replacing procedural PHP HTML rendering entirely. High-volume parallel validations confirm numerical outputs match. Staff UAT runs on the cloud environment.",
+        gatewayActive: true,
+        strangled: ["emp", "pay", "leave", "rep"],
+        modernActive: ["emp", "pay", "leave", "notif"]
+      },
+      28: {
+        desc: "<strong>Week 25-28: Final Monolith Decommissioning</strong>. Legacy PHP monolithic routing is terminated. MySQL databases are archived. The entire payroll system runs 100% cloud-native on the modernized microservices cluster. Migration is fully complete with zero downtime.",
+        gatewayActive: true,
+        strangled: ["emp", "pay", "leave", "rep"],
+        modernActive: ["emp", "pay", "leave", "notif"]
+      }
+    };
+
+    /* -------------------------------------------------------------
+       ACADEMIC REPORT SECTIONS (TEXT)
+       ------------------------------------------------------------- */
+    const reportSections = {
+      abstract: `
+        <h1>Abstract</h1>
+        <p>Legacy software systems represent a critical challenge in modern enterprise computing. Organizations depend on these aging systems for core business functions, yet their architectural decay makes them increasingly expensive to maintain and dangerous to operate. This project presents a systematic application of architecture recovery and model-driven re-engineering techniques to a legacy PHP/MySQL Payroll Management System. Through structured reverse engineering, the original monolithic architecture was recovered and documented. Static code analysis revealed six major architectural violations including critical SQL injection vulnerabilities, a God File anti-pattern spanning 2,000 lines of code, and complete absence of layered architecture. Six code smells were identified and mapped to proven refactoring techniques from Fowler's catalog. The project proposes a comprehensive modernization strategy transforming the monolith into a five-service microservices architecture with a REST API layer, React frontend, and 28-week incremental migration roadmap using the Strangler Fig Pattern. The findings demonstrate that disciplined architecture recovery is an essential prerequisite to effective re-engineering, and that incremental migration strategies significantly reduce modernization risk compared to full system rewrites.</p>
+        <p><strong>Keywords:</strong> Legacy Systems, Architecture Recovery, Re-Engineering, Code Smells, Microservices, Strangler Fig Pattern, Refactoring, Technical Debt</p>
+      `,
+      intro: `
+        <h1 id="rep-sec-intro">1. Introduction</h1>
+        <h2>1.1 Problem Statement</h2>
+        <p>Software systems inevitably age. Technologies become obsolete, business requirements evolve, and codebases accumulate technical debt through years of maintenance by multiple developers with varying skill levels and no consistent architectural vision. The result is what the industry terms a "legacy system" — not merely old software, but old software that the organization cannot afford to replace wholesale while still depending on it for critical business operations.</p>
+        <p>The challenge is particularly acute for payroll systems. Unlike customer-facing applications where downtime is visible and commercially damaging, payroll systems operate in the background until they fail — and when they fail, employees are not paid. The consequences extend beyond technical inconvenience to legal liability, employee relations damage, and regulatory non-compliance.</p>
+        <h2>1.2 Project Objectives</h2>
+        <p>The objectives of this project are to apply structured architecture recovery techniques to extract the As-Is architecture from source code, identify and document all code smells and architectural violations using established taxonomies, map each identified problem to a specific, traceable refactoring or re-engineering technique, and design a complete To-Be architecture incorporating modern software engineering principles.</p>
+      `,
+      literature: `
+        <h1 id="rep-sec-literature">2. Background and Literature Review</h1>
+        <p>Lehman (1980) established that software systems undergo continuous evolution and that unless actively maintained, their complexity increases and their reliability decreases — a principle now known as Lehman's Laws of Software Evolution. Bennett and Rajlich (2000) extended this to define a lifecycle in which systems transition from active development through maintenance into a "legacy" state characterized by high maintenance cost and accumulated technical debt.</p>
+        <p>Brodie and Stonebraker (1995) provided the seminal definition of legacy systems: "Any information system that significantly resists modification and evolution." This resistance, not age alone, defines a legacy system.</p>
+      `,
+      system: `
+        <h1 id="rep-sec-system">3. System Under Study</h1>
+        <p>The subject of this study is a Payroll Management System developed in PHP 5.x with a MySQL 5.x database backend. The system has been in production use for approximately 8 years and processes monthly payroll for an organization's workforce. It has zero test coverage and was maintained without consistent architectural governance.</p>
+        <table>
+          <thead>
+            <tr><th>Property</th><th>Legacy State</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Primary Language</td><td>PHP 5.x Procedural</td></tr>
+            <tr><td>Database Backend</td><td>MySQL 5.x</td></tr>
+            <tr><td>LOC Size</td><td>~8,000 Lines</td></tr>
+            <tr><td>Test Coverage</td><td>0%</td></tr>
+          </tbody>
+        </table>
+      `,
+      methodology: `
+        <h1 id="rep-sec-methodology">4. Methodology</h1>
+        <p>This project follows a four-phase software re-engineering lifecycle based on the framework of Chikofsky and Cross (1990):</p>
+        <blockquote>
+          "Reverse engineering is the process of analyzing a subject system to identify components and relationships and create representations in another form at a higher level of abstraction."
+        </blockquote>
+        <p>We trace from <strong>Phase 1: Architecture Recovery</strong> to <strong>Phase 2: Problem Identification</strong>, <strong>Phase 3: Refactoring Mapping</strong>, and <strong>Phase 4: Modernization Target Design</strong>.</p>
+      `,
+      recovery: `
+        <h1 id="rep-sec-recovery">5. Architecture Recovery (As-Is Analysis)</h1>
+        <p>Static analysis was applied to map files and database schema creators. The primary recovery finding was a total absence of layered structure boundaries. Logical components (Employee, Payroll, Leave, Reporting) all operate in the same execution context inside one script, coupled heavily to a mutable shared connection variable.</p>
+        <p>Six major architectural violations were recovered: No layered architecture, God File structure, absent API layer, shared mutable global state, hardcoded configuration variables, and fragile copy-pasted authentication checks.</p>
+      `,
+      smells: `
+        <h1 id="rep-sec-smells">6. Code Smell and Anti-Pattern Analysis</h1>
+        <p>Six core code smells were isolated using Martin Fowler's Refactoring taxonomy (1999):</p>
+        <ol>
+          <li><strong>God File / Large Class:</strong> 2,000+ line procedural script.</li>
+          <li><strong>Raw SQL String Concatenation:</strong> Exposes the system to SQL Injection attacks.</li>
+          <li><strong>Duplicate Auth Checks:</strong> Authentication code blocks copy-pasted in multiple methods.</li>
+          <li><strong>Shotgun Surgery:</strong> Modifying tax rates requires code changes in four files.</li>
+          <li><strong>Hardcoded Credentials:</strong> plaintext root credentials stored in source repository.</li>
+          <li><strong>Long Method:</strong> calculate_salary() function containing 400 lines of mixed code.</li>
+        </ol>
+        <p><strong>Year Bleed Logic Bug:</strong> Overtime hour calculations lack a target year query constraint, resulting in prior years' overtime hours from the same month being summed into current salary payments, creating compounding accounting losses.</p>
+      `,
+      techniques: `
+        <h1 id="rep-sec-techniques">7. Re-Engineering Techniques Applied</h1>
+        <p>Each smell is resolved by mapping to a corresponding Fowler technique: God File becomes decomposed classes, SQL Injection is solved by repository pattern ORMs, duplicate code checks are extracted to NestJS middleware decorators, shotgun surgery is solved by moving methods to a ConfigService configuration injection, and long methods are decomposed into testable sub-functions.</p>
+      `,
+      modernization: `
+        <h1 id="rep-sec-modernization">8. Proposed Modernization Strategy (To-Be Architecture)</h1>
+        <p>The target architecture decomposes the monolith into 5 independent microservices: Employee Service, Payroll Service, Leave Service, Report Service, and Notification Service. Decoupling is achieved using Nginx API Gateway routing, RabbitMQ event buses, and PostgreSQL database isolation per service.</p>
+        <p><strong>Strangler Fig Pattern:</strong> Rather than performing a risky "Big Bang" rewrite, services are built and deployed piece-by-piece over 28 weeks, routing traffic incrementally until legacy shutdown.</p>
+      `,
+      comparison: `
+        <h1 id="rep-sec-comparison">9. Comparative Analysis</h1>
+        <p>Comparing As-Is vs To-Be architectures shows measurable improvements in security (parameterized inputs, JWTs, bcrypt hashes), operations (automated CI/CD Docker containers, Prometheus monitoring), scalability (independent service scaling), and code health (unit testing target >80%).</p>
+      `,
+      conclusion: `
+        <h1 id="rep-sec-conclusion">10. Conclusion</h1>
+        <p>This project successfully demonstrates the complete software re-engineering lifecycle applied to a production legacy system. Architecture recovery is established as a non-negotiable baseline, code smells as diagnostic symptoms of architectural decay, and the Strangler Fig Pattern as the professional standard for risk-minimized modernization.</p>
+      `,
+      references: `
+        <h1 id="rep-sec-references">11. References</h1>
+        <p>1. Bennett, K.H., & Rajlich, V.T. (2000). Software maintenance and evolution: A roadmap. *Conference on Future of Software Engineering.* ACM.</p>
+        <p>2. Brodie, M.L., & Stonebraker, M. (1995). *Migrating Legacy Systems.* Morgan Kaufmann.</p>
+        <p>3. Chikofsky, E.J., & Cross, J.H. (1990). Reverse engineering and design recovery: A taxonomy. *IEEE Software.*</p>
+        <p>4. Fowler, M. (1999). *Refactoring: Improving the Design of Existing Code.* Addison-Wesley.</p>
+        <p>5. Newman, S. (2015). *Building Microservices.* O'Reilly Media.</p>
+      `
+    };
+
+    /* -------------------------------------------------------------
+       CORE TAB & MENU CONTROL LOGIC
+       ------------------------------------------------------------- */
+    let currentSlide = 0;
+
+    function switchTab(tabId, element) {
+      // Switch active menu item class
+      document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
+      element.classList.add('active');
+
+      // Switch active tab content
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.getElementById('tab-' + tabId).classList.add('active');
+
+      // Update Header title
+      const titleTextMap = {
+        'dashboard': 'Dashboard Overview',
+        'presentation': 'Final Semester Presentation Slides',
+        'smells': 'Interactive Code Smell Explorer',
+        'strangler': 'Strangler Fig Migration Simulator',
+        'sandbox': 'Live Re-engineering Sandbox Simulator',
+        'report': 'Complete Academic Project Report'
+      };
+      document.getElementById('header-title-text').innerText = titleTextMap[tabId] || 'Project Showcase';
+      
+      // Auto-trigger rendering elements on specific tabs
+      if (tabId === 'presentation') {
+        renderSlide();
+      } else if (tabId === 'smells') {
+        // select first smell if none active
+        const activeSmellTab = document.querySelector('.tab-smell.active');
+        if (!activeSmellTab) {
+          selectSmell(1, document.querySelector('.tab-smell'));
+        }
+      } else if (tabId === 'strangler') {
+        updateStranglerSimulator(document.getElementById('strangler-week-slider').value);
+      }
+    }
+
+    /* -------------------------------------------------------------
+       SLIDE PRESENTATION LOGIC
+       ------------------------------------------------------------- */
+    function renderSlide() {
+      const slide = slidesData[currentSlide];
+      const viewer = document.getElementById('slide-viewer');
+      
+      // Add fade out
+      viewer.style.opacity = 0;
+      viewer.style.transform = 'translateY(5px)';
+      
+      setTimeout(() => {
+        viewer.innerHTML = `
+          <div class="slide-header">${slide.header}</div>
+          <h2 class="slide-title">${slide.title}</h2>
+          <div class="slide-content">${slide.content}</div>
+        `;
+        document.getElementById('slide-notes').innerHTML = slide.notes;
+        document.getElementById('slide-num-indicator').innerText = `Slide ${currentSlide + 1} of ${slidesData.length}`;
+        
+        // Disable buttons at boundaries
+        document.getElementById('btn-prev-slide').disabled = (currentSlide === 0);
+        document.getElementById('btn-next-slide').disabled = (currentSlide === slidesData.length - 1);
+        
+        // Fade in
+        viewer.style.opacity = 1;
+        viewer.style.transform = 'translateY(0)';
+      }, 150);
+    }
+
+    function changeSlide(direction) {
+      currentSlide += direction;
+      if (currentSlide < 0) currentSlide = 0;
+      if (currentSlide >= slidesData.length) currentSlide = slidesData.length - 1;
+      renderSlide();
+    }
+
+    function toggleFullscreen() {
+      const container = document.querySelector('.presentation-container');
+      if (!document.fullscreenElement) {
+        container.requestFullscreen().catch(err => {
+          alert(`Error attempting to enable full-screen mode: ${err.message}`);
+        });
+      } else {
+        document.exitFullscreen();
+      }
+    }
+
+    // Keyboard navigation for presentation
+    document.addEventListener('keydown', (e) => {
+      const isPresentationActive = document.getElementById('tab-presentation').classList.contains('active');
+      if (!isPresentationActive) return;
+      
+      if (e.key === 'ArrowRight' || e.key === ' ') {
+        changeSlide(1);
+      } else if (e.key === 'ArrowLeft') {
+        changeSlide(-1);
+      }
+    });
+
+    /* -------------------------------------------------------------
+       CODE SMELL SELECTION LOGIC
+       ------------------------------------------------------------- */
+    function selectSmell(smellId, element) {
+      document.querySelectorAll('.tab-smell').forEach(el => el.classList.remove('active'));
+      element.classList.add('active');
+
+      const data = smellsData[smellId];
+      document.getElementById('smell-severity').innerText = data.severity;
+      document.getElementById('smell-severity').className = `severity-badge ${data.severityClass}`;
+      document.getElementById('smell-remedy').innerText = data.remedy;
+      document.getElementById('smell-location').innerText = data.location;
+      document.getElementById('smell-desc').innerText = data.desc;
+      
+      document.getElementById('legacy-filename').innerText = data.legacyFile;
+      document.getElementById('refactored-filename').innerText = data.refactoredFile;
+      
+      document.getElementById('legacy-code-content').innerHTML = data.legacyCode;
+      document.getElementById('refactored-code-content').innerHTML = data.refactoredCode;
+    }
+
+    /* -------------------------------------------------------------
+       STRANGLER FIG TIMELINE LOGIC
+       ------------------------------------------------------------- */
+    function updateStranglerSimulator(week) {
+      // Find matching configuration
+      let targetWeek = 0;
+      const weeksKeys = Object.keys(stranglerWeeks).map(Number).sort((a,b) => a-b);
+      for (let w of weeksKeys) {
+        if (week >= w) {
+          targetWeek = w;
+        }
+      }
+      
+      const config = stranglerWeeks[targetWeek];
+      document.getElementById('simulator-week-val').innerText = `Week ${week}`;
+      document.getElementById('migration-status-desc').innerHTML = `<strong>Migration Progress (Week ${week}):</strong> ${config.desc}`;
+
+      // Reset styles
+      const legacyNodes = ['emp', 'pay', 'leave', 'rep'];
+      const modernNodes = ['emp', 'pay', 'leave', 'notif'];
+      
+      // Update Gateway
+      const gateway = document.getElementById('modern-node-gateway');
+      if (config.gatewayActive) {
+        gateway.classList.add('active');
+        gateway.innerText = "API Gateway (Nginx) — ACTIVE";
+      } else {
+        gateway.classList.remove('active');
+        gateway.innerText = "API Gateway (Nginx) — Inactive";
+      }
+
+      // Update zones status
+      const legacyZone = document.getElementById('legacy-domain-card');
+      const modernZone = document.getElementById('modern-domain-card');
+      
+      if (week == 0) {
+        legacyZone.classList.add('active');
+        modernZone.classList.remove('active');
+      } else if (week >= 28) {
+        legacyZone.classList.remove('active');
+        modernZone.classList.add('active');
+      } else {
+        legacyZone.classList.add('active');
+        modernZone.classList.add('active');
+      }
+
+      // Update individual nodes
+      legacyNodes.forEach(node => {
+        const el = document.getElementById(`legacy-node-${node}`);
+        if (config.strangled.includes(node)) {
+          el.classList.add('strangled');
+        } else {
+          el.classList.remove('strangled');
+        }
+      });
+
+modernNodes.forEach(node => {
+        const el = document.getElementById(`modern-node-${node}`);
+        if (config.modernActive.includes(node)) {
+          el.classList.add('active-modern');
+        } else {
+          el.classList.remove('active-modern');
+        }
+      });
+    }
+
+    /* -------------------------------------------------------------
+       PAYROLL SANDBOX SIMULATION LOGIC
+       ------------------------------------------------------------- */
+    let latestModernPayload = null; // Store calculated payload globally for payslip modal
+
+    // Classroom Demo Walkthrough triggers
+    function triggerPresentationDemo(stepNum) {
+      const nameField = document.getElementById('calc-name');
+      const salaryField = document.getElementById('calc-salary');
+      const otField = document.getElementById('calc-ot');
+      const loanField = document.getElementById('calc-loan');
+      const monthField = document.getElementById('calc-month');
+      const yearField = document.getElementById('calc-year');
+      const strategyField = document.getElementById('calc-strategy');
+
+      if (stepNum === 1) {
+        nameField.value = "Alice Khan";
+        salaryField.value = "45000";
+        otField.value = "5";
+        loanField.value = "0";
+        monthField.value = "6";
+        yearField.value = "2026";
+        strategyField.value = "progressive";
+      } else if (stepNum === 2) {
+        nameField.value = "Sarah Jenkins";
+        salaryField.value = "85000";
+        otField.value = "8";
+        loanField.value = "3000";
+        monthField.value = "6";
+        yearField.value = "2026";
+        strategyField.value = "progressive";
+      } else if (stepNum === 3) {
+        nameField.value = "John Smith";
+        salaryField.value = "160000";
+        otField.value = "12";
+        loanField.value = "5000";
+        monthField.value = "6";
+        yearField.value = "2026";
+        strategyField.value = "progressive";
+      } else if (stepNum === 4) {
+        nameField.value = "Jane Doe";
+        salaryField.value = "75000";
+        otField.value = "10";
+        loanField.value = "0";
+        monthField.value = "6"; // June
+        yearField.value = "2026"; // 2026
+        strategyField.value = "progressive";
+      }
+
+      runPayrollSandbox();
+    }
+
+    function runPayrollSandbox() {
+      const name = document.getElementById('calc-name').value;
+      const basicSalary = parseFloat(document.getElementById('calc-salary').value) || 0;
+      const otHours = parseFloat(document.getElementById('calc-ot').value) || 0;
+      const loanDeduction = parseFloat(document.getElementById('calc-loan').value) || 0;
+      const month = parseInt(document.getElementById('calc-month').value);
+      const year = parseInt(document.getElementById('calc-year').value);
+      const strategy = document.getElementById('calc-strategy').value;
+
+      const hourlyRate = basicSalary / 26 / 8;
+
+      // 1. LEGACY MONOLITHIC COMPUTATION
+      const legacyLogs = document.getElementById('legacy-logs');
+      legacyLogs.innerHTML = "";
+      addLog(legacyLogs, "[PHP-Notice] session_start() session context loaded.");
+      addLog(legacyLogs, "[SQL] Connecting to database endpoint localhost:3306 as root:admin123...", "warn");
+      addLog(legacyLogs, "[SQL] Connection established successfully.");
+      
+      // SQL String Concatenation log
+      addLog(legacyLogs, `[SQL] Querying employee: SELECT * FROM employees WHERE name = '${name}'`, "warn");
+      
+      // Simulating the "Year Bleed" bug
+      let legacyOtHours = otHours;
+      let triggeredYearBleed = false;
+      
+      if (month === 6 && year === 2026) {
+        triggeredYearBleed = true;
+        legacyOtHours = otHours + 15; // sums June 2025's 15 hours
+        addLog(legacyLogs, `[SQL] Querying overtime logs: SELECT SUM(overtime_hours) FROM overtime WHERE employee_id = 12 AND MONTH(date) = ${month}`, "warn");
+        addLog(legacyLogs, `[DB-Result] Returned rows matching month ${month} for all years. Aggregated overtime: 10 hrs (June 2026) + 15 hrs (June 2025) = 25 hrs!`, "warn");
+        addLog(legacyLogs, `[PHP-Calc] OVERTIME CALCULATION YEAR BLEED: sums prior years overtime. Total overtime hours processed: 25.`, "err");
+      } else {
+        addLog(legacyLogs, `[SQL] Querying overtime logs: SELECT SUM(overtime_hours) FROM overtime WHERE employee_id = 12 AND MONTH(date) = ${month}`, "warn");
+        addLog(legacyLogs, `[DB-Result] Returned overtime hours: ${otHours} hrs.`);
+      }
+
+      // Legacy Calculations
+      const legacyOtPay = legacyOtHours * hourlyRate * 1.5;
+      const legacyHouseAllowance = basicSalary * 0.20; // Flat hardcoded 20%
+      const legacyTransport = 2000;                  // Flat hardcoded
+      const legacyMedical = 1500;                    // Flat hardcoded
+      const legacyGross = basicSalary + legacyHouseAllowance + legacyTransport + legacyMedical + legacyOtPay;
+      
+      const legacyTax = basicSalary * 0.10;           // Flat hardcoded 10% tax
+      const legacyPf = basicSalary * 0.12;            // Flat hardcoded 12% provident fund
+      const legacyTotalDeductions = legacyTax + legacyPf + loanDeduction;
+      const legacyNet = legacyGross - legacyTotalDeductions;
+
+      // Render Legacy output view
+      document.getElementById('legacy-alert-box').style.display = "block";
+      document.getElementById('legacy-preview-container').style.display = "block";
+      document.getElementById('legacy-payslip-html').innerHTML = `
+        <h1>PAYSLIP - ${month}/${year}</h1>
+        <p><strong>Employee:</strong> ${name} (ID: 12)</p>
+        <p><strong>Basic Salary:</strong> PKR ${basicSalary.toFixed(2)}</p>
+        <p><strong>Allowances:</strong> PKR ${(legacyHouseAllowance + legacyTransport + legacyMedical).toFixed(2)} (HRA: 20%, Med: 1500, Trans: 2000)</p>
+        <p><strong>Overtime Pay:</strong> PKR ${legacyOtPay.toFixed(2)} (${legacyOtHours} hrs @ rate 1.5)</p>
+        <p><strong>Tax Deduction (Flat 10%):</strong> PKR ${legacyTax.toFixed(2)}</p>
+        <p><strong>Provident Fund (Flat 12%):</strong> PKR ${legacyPf.toFixed(2)}</p>
+        <p><strong>Loan Deduction:</strong> PKR ${loanDeduction.toFixed(2)}</p>
+        <p style="font-size:1rem; font-weight:bold; border-top:2px solid #24292f; padding-top:8px; margin-top:8px;">
+          Net Paid Salary: PKR ${legacyNet.toFixed(2)}
+        </p>
+      `;
+
+      // 2. MODERNIZED RE-ENGINEERED TS CALCULATOR
+      const modernLogs = document.getElementById('modern-logs');
+      modernLogs.innerHTML = "";
+      addLog(modernLogs, "[Nest] Bootstrapping PayrollService container...", "info");
+      addLog(modernLogs, "[TypeORM] Initializing isolated PostgreSQL connection pool.", "info");
+      addLog(modernLogs, "[SQL] SELECT * FROM employees WHERE id = $1 LIMIT 1", "success");
+      addLog(modernLogs, `[TypeORM] Employee record loaded successfully: ${name} (ID: 12)`);
+      
+      // Parameterized overtime check
+      addLog(modernLogs, `[SQL] Parameterized overtime search: SELECT SUM(overtime_hours) as total FROM overtime WHERE employee_id = $1 AND EXTRACT(MONTH FROM date) = $2 AND EXTRACT(YEAR FROM date) = $3`, "success");
+      addLog(modernLogs, `[DB-Result] Parameter inputs bound: [12, ${month}, ${year}]. Isolated June 2026 records. Overtime = ${otHours} hrs.`, "success");
+
+      // Progressive Range-based Allowances logic
+      let hraRate = 0.20;
+      let medRate = 0.15;
+      let transportAllow = 8000;
+      let allowSlab = 3;
+
+      if (basicSalary <= 40000) {
+        hraRate = 0.30;
+        medRate = 0.10;
+        transportAllow = 3000;
+        allowSlab = 1;
+      } else if (basicSalary <= 100000) {
+        hraRate = 0.25;
+        medRate = 0.12;
+        transportAllow = 5000;
+        allowSlab = 2;
+      }
+      
+      addLog(modernLogs, `[ConfigService] Salary PKR ${basicSalary} matches Allowance Slab ${allowSlab}. Allowances loaded: HRA ${hraRate*100}%, Med ${medRate*100}%, Transport PKR ${transportAllow}.`, "info");
+
+      const modernHouseAllowance = basicSalary * hraRate;
+      const modernMedicalAllowance = basicSalary * medRate;
+      const modernOtPay = otHours * hourlyRate * 1.5;
+      const modernGross = basicSalary + modernHouseAllowance + modernMedicalAllowance + transportAllow + modernOtPay;
+
+      // Progressive Range-based Tax Strategy logic
+      let modernTax = 0;
+      let taxLogStr = "";
+      if (strategy === "progressive") {
+        addLog(modernLogs, "[StrategyPattern] Invoking Dynamic strategy: ProgressiveSlabTaxStrategy", "info");
+        
+        if (basicSalary <= 50000) {
+          modernTax = 0;
+          taxLogStr = `Basic PKR ${basicSalary} <= 50,000 (Slab 1: Tax Exempt)`;
+        } else if (basicSalary <= 100000) {
+          modernTax = (basicSalary - 50000) * 0.05;
+          taxLogStr = `Basic PKR ${basicSalary} matches Slab 2: 5% of excess over 50k = PKR ${modernTax.toFixed(2)}`;
+        } else if (basicSalary <= 150000) {
+          modernTax = 2500 + (basicSalary - 100000) * 0.10;
+          taxLogStr = `Basic PKR ${basicSalary} matches Slab 3: PKR 2,500 + 10% of excess over 100k = PKR ${modernTax.toFixed(2)}`;
+        } else {
+          modernTax = 7500 + (basicSalary - 150000) * 0.15;
+          taxLogStr = `Basic PKR ${basicSalary} matches Slab 4: PKR 7,500 + 15% of excess over 150k = PKR ${modernTax.toFixed(2)}`;
+        }
+        addLog(modernLogs, `[ProgressiveSlabTaxStrategy] ${taxLogStr}`, "success");
+      } else {
+        addLog(modernLogs, "[StrategyPattern] Invoking Dynamic strategy: Flat10TaxStrategy", "info");
+        modernTax = basicSalary * 0.10;
+        addLog(modernLogs, `[Flat10TaxStrategy] Calculated tax flat 10%: PKR ${modernTax.toFixed(2)}`, "success");
+      }
+
+      const modernPf = basicSalary * 0.12; // Injected rate
+      const modernTotalDeductions = modernTax + modernPf + loanDeduction;
+      const modernNet = modernGross - modernTotalDeductions;
+
+      // JSON payload building
+      latestModernPayload = {
+        id: 90283,
+        employee: {
+          id: 12,
+          name: name,
+          email: `${name.toLowerCase().replace(/\s+/g, '')}@kiu-payroll.pk`,
+          baseSalary: basicSalary,
+          department: "Engineering",
+          status: "active"
+        },
+        payrollPeriod: {
+          month: month,
+          year: year
+        },
+        calculationDetails: {
+          basicSalary: basicSalary,
+          allowances: {
+            houseRentAllowance: modernHouseAllowance,
+            medicalAllowance: modernMedicalAllowance,
+            transportAllowance: transportAllow,
+            totalAllowances: modernHouseAllowance + modernMedicalAllowance + transportAllow
+          },
+          overtime: {
+            hours: otHours,
+            hourlyBase: hourlyRate,
+            multiplier: 1.5,
+            overtimePay: modernOtPay
+          },
+          deductions: {
+            incomeTax: modernTax,
+            providentFund: modernPf,
+            loanRepayment: loanDeduction,
+            totalDeductions: modernTotalDeductions
+          }
+        },
+        financials: {
+          grossSalary: modernGross,
+          netSalary: modernNet
+        },
+        metadata: {
+          calculationTimestamp: new Date().toISOString(),
+          securityProtocol: "TypeORM Parameterized Query",
+          taxStrategyClass: strategy === "progressive" ? "ProgressiveSlabTaxStrategy" : "Flat10TaxStrategy",
+          allowanceSlabCode: `ALLOW_SLAB_${allowSlab}`
+        }
+      };
+
+      document.getElementById('modern-alert-box').style.display = "block";
+      document.getElementById('modern-preview-container').style.display = "block";
+      document.getElementById('modern-payroll-json').innerText = JSON.stringify(latestModernPayload, null, 2);
+    }
+
+    function addLog(panel, text, type = "") {
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${type}`;
+      let prefix = "[INFO]";
+      if (type === "warn") prefix = "[WARN]";
+      if (type === "err") prefix = "[ERROR]";
+      if (type === "success") prefix = "[SUCCESS]";
+      
+      entry.innerText = `${prefix} ${text}`;
+      panel.appendChild(entry);
+      panel.scrollTop = panel.scrollHeight;
+    }
+
+    /* -------------------------------------------------------------
+       CORPORATE PAYSLIP MODAL CONTROLLER
+       ------------------------------------------------------------- */
+    function openPayslipModal() {
+      if (!latestModernPayload) {
+        alert("Please calculate the payroll sandbox parameters first.");
+        return;
+      }
+      
+      const payload = latestModernPayload;
+      const modal = document.getElementById('payslip-modal');
+      const content = document.getElementById('printable-payslip-content');
+
+      // Convert numbers to words (simple helper for salaries up to 1m)
+      function amountToWords(num) {
+        const a = ['','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve','thirteen','fourteen','fifteen','sixteen','seventeen','eighteen','nineteen'];
+        const b = ['','','twenty','thirty','forty','fifty','sixty','seventy','eighty','ninety'];
+        
+        function g(n) {
+          if (n < 20) return a[n];
+          const digit = n % 10;
+          return b[Math.floor(n / 10)] + (digit ? "-" + a[digit] : "");
+        }
+        
+        const integerPart = Math.floor(num);
+        if (integerPart === 0) return "zero";
+        
+        let words = "";
+        const lakhs = Math.floor(integerPart / 100000);
+        const thousands = Math.floor((integerPart % 100000) / 1000);
+        const hundreds = Math.floor((integerPart % 1000) / 100);
+        const tens = integerPart % 100;
+        
+        if (lakhs > 0) {
+          words += g(lakhs) + " lakh ";
+        }
+        if (thousands > 0) {
+          words += g(thousands) + " thousand ";
+        }
+        if (hundreds > 0) {
+          words += g(hundreds) + " hundred ";
+        }
+        if (tens > 0) {
+          if (words !== "") words += "and ";
+          words += g(tens) + " ";
+        }
+        return words.trim().toUpperCase() + " PKR ONLY";
+      }
+
+      const netSalaryInWords = amountToWords(payload.financials.netSalary);
+
+      content.innerHTML = `
+        <div class="corp-payslip" id="payslip-print-block">
+          <div class="corp-header">
+            <div class="corp-logo-section">
+              <div class="corp-title"><i class="fa-solid fa-building-columns"></i> Karakorum Software Solutions</div>
+              <div class="corp-subtitle">Software Engineering Modernization Project | KIU Gilgit</div>
+            </div>
+            <div style="text-align: right;">
+              <div style="font-weight: 800; font-size: 1rem; color: #24292f;">CONFIDENTIAL PAYSLIP</div>
+              <div style="font-size:0.75rem; color:#586069;">Period: June 2026</div>
+            </div>
+          </div>
+
+          <div class="corp-meta-grid">
+            <div>
+              <div class="corp-meta-item"><span>Employee Name:</span><strong>${payload.employee.name}</strong></div>
+              <div class="corp-meta-item"><span>Employee ID:</span><strong>EMP-00${payload.employee.id}</strong></div>
+              <div class="corp-meta-item"><span>Department:</span><strong>${payload.employee.department}</strong></div>
+            </div>
+            <div>
+              <div class="corp-meta-item"><span>Payslip ID:</span><strong>PAY-00${payload.id}</strong></div>
+              <div class="corp-meta-item"><span>Bank Account:</span><strong>HBL-****-9831</strong></div>
+              <div class="corp-meta-item"><span>Status:</span><strong>Active (Salaried)</strong></div>
+            </div>
+          </div>
+
+          <table class="corp-table">
+            <thead>
+              <tr>
+                <th>Earnings Details</th>
+                <th>Amount (PKR)</th>
+                <th>Deductions Details</th>
+                <th>Amount (PKR)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Basic Salary</td>
+                <td>${payload.calculationDetails.basicSalary.toFixed(2)}</td>
+                <td>Income Tax (${payload.metadata.taxStrategyClass})</td>
+                <td style="color:#d73a49;">${payload.calculationDetails.deductions.incomeTax.toFixed(2)}</td>
+              </tr>
+              <tr>
+                <td>House Rent Allowance (HRA)</td>
+                <td>${payload.calculationDetails.allowances.houseRentAllowance.toFixed(2)}</td>
+                <td>Provident Fund (12%)</td>
+                <td style="color:#d73a49;">${payload.calculationDetails.deductions.providentFund.toFixed(2)}</td>
+              </tr>
+              <tr>
+                <td>Medical Allowance</td>
+                <td>${payload.calculationDetails.allowances.medicalAllowance.toFixed(2)}</td>
+                <td>Active Loan Deduction</td>
+                <td style="color:#d73a49;">${payload.calculationDetails.deductions.loanRepayment.toFixed(2)}</td>
+              </tr>
+              <tr>
+                <td>Transport Allowance</td>
+                <td>${payload.calculationDetails.allowances.transportAllowance.toFixed(2)}</td>
+                <td></td>
+                <td></td>
+              </tr>
+              <tr>
+                <td>Overtime Pay (${payload.calculationDetails.overtime.hours} hrs)</td>
+                <td>${payload.calculationDetails.overtime.overtimePay.toFixed(2)}</td>
+                <td></td>
+                <td></td>
+              </tr>
+              <tr style="font-weight: 700; background:#f6f8fa;">
+                <td>Total Earnings</td>
+                <td>${payload.financials.grossSalary.toFixed(2)}</td>
+                <td>Total Deductions</td>
+                <td style="color:#d73a49;">${payload.calculationDetails.deductions.totalDeductions.toFixed(2)}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="corp-summary-box">
+            <div class="corp-summary-table">
+              <div class="corp-summary-row"><span>Gross Salary:</span><span>PKR ${payload.financials.grossSalary.toFixed(2)}</span></div>
+              <div class="corp-summary-row"><span>Total Deductions:</span><span style="color:#d73a49;">PKR ${payload.calculationDetails.deductions.totalDeductions.toFixed(2)}</span></div>
+              <div class="corp-summary-row corp-summary-row net"><span>Net Salary:</span><span>PKR ${payload.financials.netSalary.toFixed(2)}</span></div>
+            </div>
+          </div>
+
+          <div style="border-top:1px solid #e1e4e8; padding-top:12px; margin-top:20px; font-size:0.75rem;">
+            <strong>NET SALARY IN WORDS:</strong> ${netSalaryInWords}<br>
+            <span style="color:#586069; font-size:0.7rem; display:block; margin-top:8px;">
+              * Note: This is an academically generated payroll voucher. Calculations and strategy checks conform to the re-engineering target models.
+            </span>
+          </div>
+        </div>
+      `;
+
+      modal.style.display = 'flex';
+    }
+
+    function closePayslipModal() {
+      document.getElementById('payslip-modal').style.display = 'none';
+    }
+
+    function printPayslip() {
+      const printContents = document.getElementById('printable-payslip-content').innerHTML;
+      const originalContents = document.body.innerHTML;
+      
+      // Open a print window
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Employee Payslip</title>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+            <style>
+              body { font-family: Arial, sans-serif; background:#fff; color:#333; padding: 40px; }
+              ${document.querySelector('style').innerHTML}
+              .corp-payslip { border: 2px solid #333; }
+            </style>
+          </head>
+          <body>
+            ${printContents}
+            <script>window.onload = function() { window.print(); window.close(); }${'</scr' + 'ipt>'}
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+    }
+
+    /* -------------------------------------------------------------
+       ACADEMIC REPORT DISPLAY & SCROLL LOGIC
+       ------------------------------------------------------------- */
+    function renderAcademicReport() {
+      const container = document.getElementById('report-text-container');
+      // Combine all sections into a single HTML stream
+      let fullHtml = "";
+      Object.keys(reportSections).forEach(section => {
+        fullHtml += `<section id="sec-${section}">${reportSections[section]}</section><hr style="border:none; border-bottom:1px solid var(--border-color); margin: 40px 0;">`;
+      });
+      container.innerHTML = fullHtml;
+    }
+
+    function scrollToReportSection(sectionId) {
+      // Set active TOC link
+      document.querySelectorAll('.toc-link').forEach(el => {
+        const onClickAttr = el.getAttribute('onclick') || '';
+        if (onClickAttr.includes(`'${sectionId}'`)) {
+          el.classList.add('active');
+        } else {
+          el.classList.remove('active');
+        }
+      });
+
+      const el = document.getElementById('sec-' + sectionId);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+
+    /* -------------------------------------------------------------
+       INIT WORKSPACE
+       ------------------------------------------------------------- */
+    window.addEventListener('DOMContentLoaded', () => {
+      renderSlide();
+      renderAcademicReport();
+    });
+  </script>
+</body>
+</html>
